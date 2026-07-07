@@ -9,7 +9,6 @@ use App\Models\ProductionSchedule;
 use App\Services\Scheduling\SchedulingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
-
 class ProductionController extends Controller
 {
     /**
@@ -21,6 +20,11 @@ class ProductionController extends Controller
         'print'  => 'printing_manager',
         'sew'    => 'sewing_manager',
     ];
+
+    /**
+     * Valid department values accepted by routes.
+     */
+    private const VALID_DEPARTMENTS = ['design', 'print', 'sew'];
 
     /**
      * Which role receives a notification when an order enters a stage.
@@ -39,6 +43,9 @@ class ProductionController extends Controller
 
     public function complete(string $department, int $orderId): RedirectResponse
     {
+        // #12 — validate dept string before touching the DB
+        abort_unless(in_array($department, self::VALID_DEPARTMENTS, true), 404);
+
         $order = Order::findOrFail($orderId);
 
         // Fix #1: Enforce per-department role authorisation.
@@ -96,12 +103,56 @@ class ProductionController extends Controller
 
         // Rebuild schedules outside the transaction — a failure here won't
         // undo the stage completion, it will just show stale schedule data.
+        SchedulingService::clearScheduleCache();
         $this->scheduler->rebuildSchedules();
 
         return back()->with('success',
             "Order {$order->order_number} marked complete in " . ucfirst($department) . ". "
             . "Advanced to: " . ucfirst($nextStage) . "."
         );
+    }
+
+    // ──────────────────────────────────────────────
+    // Mark order as "In Progress" in current stage
+    // Route: PATCH /production/{department}/{orderId}/start
+    // ──────────────────────────────────────────────
+
+    public function start(string $department, int $orderId): RedirectResponse
+    {
+        abort_unless(in_array($department, self::VALID_DEPARTMENTS, true), 404);
+
+        $order       = Order::findOrFail($orderId);
+        $user        = auth()->user();
+        $allowedRole = self::STAGE_ROLES[$department] ?? null;
+
+        if (! $user->isPipelineManager() && $user->role !== $allowedRole) {
+            abort(403, "Only a {$allowedRole} or pipeline manager can update the {$department} stage.");
+        }
+
+        if ($order->stage !== $department) {
+            return back()->with('error', 'This order is not currently in the ' . ucfirst($department) . ' stage.');
+        }
+
+        if ($order->status === 'in_progress') {
+            return back()->with('error', 'Order is already marked as in progress.');
+        }
+
+        DB::transaction(function () use ($order, $department) {
+            $fromStatus = $order->status;
+            $order->update(['status' => 'in_progress']);
+
+            OrderStageLog::create([
+                'order_id'    => $order->id,
+                'from_stage'  => $department,
+                'to_stage'    => $department,
+                'from_status' => $fromStatus,
+                'to_status'   => 'in_progress',
+                'changed_by'  => auth()->id(),
+                'notes'       => ucfirst($department) . ' stage started.',
+            ]);
+        });
+
+        return back()->with('success', "Order {$order->order_number} marked as in progress.");
     }
 
     // ──────────────────────────────────────────────

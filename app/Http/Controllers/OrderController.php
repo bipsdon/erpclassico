@@ -112,9 +112,9 @@ class OrderController extends Controller
                 'changed_by'  => auth()->id(),
                 'notes'       => 'Order created.',
             ]);
-
-            $this->scheduler->rebuildSchedules();
         });
+
+        SchedulingService::clearScheduleCache();
 
         return redirect()->route('orders.index')
             ->with('success', 'Order created successfully.');
@@ -171,9 +171,9 @@ class OrderController extends Controller
                     'notes'       => 'Updated via order edit.',
                 ]);
             }
-
-            $this->scheduler->rebuildSchedules();
         });
+
+        SchedulingService::clearScheduleCache();
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Order updated successfully.');
@@ -193,6 +193,8 @@ class OrderController extends Controller
         }
 
         $order->delete(); // soft delete
+
+        SchedulingService::clearScheduleCache();
 
         return redirect()->route('orders.index')
             ->with('success', "Order {$order->order_number} deleted.");

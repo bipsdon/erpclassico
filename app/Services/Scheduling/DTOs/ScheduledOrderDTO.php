@@ -22,22 +22,18 @@ final class ScheduledOrderDTO
         public readonly string  $customerName,
         public readonly ?string $whatsappOrderId,
         public readonly int     $quantity,
-        public readonly string  $productType,       // jersey | tracksuit | polo_shirt | ...
-        public readonly string  $productTypeLabel,  // human-readable
+        public readonly string  $productType,
+        public readonly string  $productTypeLabel,
         public readonly string  $deliveryDate,
         public readonly string  $priority,
+        public readonly string  $orderStatus,       // pending | in_progress | completed | on_hold | cancelled
         public readonly string  $department,
         public readonly string  $scheduledDate,
         public readonly bool    $isOvertime,
         public readonly int     $daysUntilDelivery,
         public readonly string  $healthStatus,
         public readonly bool    $isLate,
-        /**
-         * Fraction of one working day this order consumes in this department.
-         * e.g. 40 jerseys at 80/day = 0.50 (50% of the day)
-         * e.g. 30 tracksuits at 55/day = 0.545 (54.5% of the day)
-         */
-        public readonly float  $dayFraction,
+        public readonly float   $dayFraction,
     ) {}
 
     public static function fromOrder(
@@ -53,22 +49,23 @@ final class ScheduledOrderDTO
         $dayFraction = $rate > 0 ? $order->quantity / $rate : 0.0;
 
         return new self(
-            orderId:          $order->id,
-            orderNumber:      $order->order_number,
-            customerName:     $order->customer_name,
-            whatsappOrderId:  $order->whatsapp_order_id,
-            quantity:         $order->quantity,
-            productType:      $order->product_type,
-            productTypeLabel: $order->product_type_label,
-            deliveryDate:     $order->delivery_date->toDateString(),
-            priority:         $order->priority,
-            department:       $department,
-            scheduledDate:    $scheduledDate,
-            isOvertime:       $isOvertime,
+            orderId:           $order->id,
+            orderNumber:       $order->order_number,
+            customerName:      $order->customer_name,
+            whatsappOrderId:   $order->whatsapp_order_id,
+            quantity:          $order->quantity,
+            productType:       $order->product_type,
+            productTypeLabel:  $order->product_type_label,
+            deliveryDate:      $order->delivery_date->toDateString(),
+            priority:          $order->priority,
+            orderStatus:       $order->status,
+            department:        $department,
+            scheduledDate:     $scheduledDate,
+            isOvertime:        $isOvertime,
             daysUntilDelivery: $days,
-            healthStatus:     self::deriveHealth($order->priority, $days),
-            isLate:           $days < 0 && $order->stage !== 'delivered',
-            dayFraction:      $dayFraction,
+            healthStatus:      self::deriveHealth($order->priority, $days),
+            isLate:            $days < 0 && $order->stage !== 'delivered',
+            dayFraction:       $dayFraction,
         );
     }
 

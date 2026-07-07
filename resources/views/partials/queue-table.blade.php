@@ -197,22 +197,47 @@
                                 </td>
 
                                 <td class="text-center">
-                                    <span class="badge bg-{{ $order->healthBadge() }}">
-                                        {{ ucfirst($order->healthStatus) }}
+                                    @php
+                                        $statusBadge = match($order->orderStatus) {
+                                            'in_progress' => 'primary',
+                                            'completed'   => 'success',
+                                            'on_hold'     => 'warning',
+                                            'cancelled'   => 'danger',
+                                            default       => 'secondary',
+                                        };
+                                    @endphp
+                                    <span class="badge bg-{{ $statusBadge }}" style="font-size:.7rem">
+                                        {{ ucwords(str_replace('_', ' ', $order->orderStatus)) }}
                                     </span>
                                 </td>
 
-                                @if($showCompletedBtn)
+                            @if($showCompletedBtn)
                                     <td class="text-center pe-3">
-                                        <form method="POST"
-                                              action="{{ route('production.complete', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
-                                              onsubmit="return confirm('Mark {{ $order->orderNumber }} as completed in {{ $queue->departmentLabel() }}?')">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-check2"></i> Done
-                                            </button>
-                                        </form>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            {{-- Start button — only when status is pending --}}
+                                            @if(in_array($order->orderStatus ?? 'pending', ['pending', 'on_hold']))
+                                                <form method="POST"
+                                                      action="{{ route('production.start', ['department' => $order->department, 'orderId' => $order->orderId]) }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-outline-primary"
+                                                            title="Mark as In Progress">
+                                                        <i class="bi bi-play-fill"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                            {{-- Done button --}}
+                                            <form method="POST"
+                                                  action="{{ route('production.complete', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
+                                                  onsubmit="return confirm('Mark {{ $order->orderNumber }} as completed in {{ $queue->departmentLabel() }}?')">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                                    <i class="bi bi-check2"></i> Done
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 @endif
                             </tr>

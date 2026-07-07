@@ -12,6 +12,7 @@ class PipelineNotification extends Model
 
     protected $fillable = [
         'sent_by',
+        'reply_to_id',
         'target_department',
         'subject',
         'message',
@@ -29,6 +30,18 @@ class PipelineNotification extends Model
     public function reads(): HasMany
     {
         return $this->hasMany(PipelineNotificationRead::class, 'notification_id');
+    }
+
+    /** The notification this is a reply to (null = root message). */
+    public function parentNotification(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id');
+    }
+
+    /** Replies sent in response to this notification. */
+    public function replies(): HasMany
+    {
+        return $this->hasMany(self::class, 'reply_to_id')->with('sender')->orderBy('created_at');
     }
 
     // ──────────────────────────────────────────────

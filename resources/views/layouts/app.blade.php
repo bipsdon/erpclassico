@@ -276,6 +276,12 @@
                         <i class="bi bi-clock-history"></i> All History
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('reports.staff-performance') }}"
+                       class="nav-link {{ request()->routeIs('reports.staff-performance') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line"></i> Staff Performance
+                    </a>
+                </li>
             @endif
 
             @if(auth()->user()->isPipelineManager() || auth()->user()->isDesigner())

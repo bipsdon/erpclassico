@@ -201,17 +201,23 @@ class Order extends Model
     {
         static::creating(function (Order $order) {
             if (empty($order->order_number)) {
+                // Lock the last order row for this prefix so concurrent inserts
+                // wait in line instead of racing to read the same sequence number.
                 $prefix = 'ORD-' . now()->format('Ym') . '-';
-                $last   = static::withTrashed()
-                    ->where('order_number', 'like', $prefix . '%')
-                    ->orderByDesc('id')
-                    ->value('order_number');
 
-                $sequence = $last
-                    ? ((int) substr($last, -4)) + 1
-                    : 1;
+                \Illuminate\Support\Facades\DB::transaction(function () use ($order, $prefix) {
+                    $last = static::withTrashed()
+                        ->where('order_number', 'like', $prefix . '%')
+                        ->lockForUpdate()
+                        ->orderByDesc('id')
+                        ->value('order_number');
 
-                $order->order_number = $prefix . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+                    $sequence = $last
+                        ? ((int) substr($last, -4)) + 1
+                        : 1;
+
+                    $order->order_number = $prefix . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+                });
             }
         });
     }

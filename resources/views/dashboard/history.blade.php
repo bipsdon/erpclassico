@@ -204,7 +204,7 @@
         <span class="fw-semibold">
             <i class="bi bi-table me-2 text-secondary"></i>Completed Orders
         </span>
-        <span class="badge bg-secondary rounded-pill">{{ $completedSchedules->count() }}</span>
+        <span class="badge bg-secondary rounded-pill">{{ $completedSchedules->total() }}</span>
     </div>
 
     @if($completedSchedules->isEmpty())
@@ -238,7 +238,9 @@
                         @php $order = $schedule->order; @endphp
                         <tr class="{{ $order->is_late ? 'table-danger' : '' }}">
 
-                            <td class="ps-3 text-muted" style="font-size:.78rem">{{ $i + 1 }}</td>
+                            <td class="ps-3 text-muted" style="font-size:.78rem">
+                                {{ ($completedSchedules->currentPage() - 1) * $completedSchedules->perPage() + $loop->iteration }}
+                            </td>
 
                             <td>
                                 <div class="fw-semibold" style="font-size:.82rem">
@@ -334,16 +336,20 @@
             </table>
         </div>
 
-        <div class="card-footer bg-white text-muted d-flex justify-content-between align-items-center"
+        <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2"
              style="font-size:.78rem">
-            <span>
-                {{ $completedSchedules->count() }} job(s) completed ·
+            <span class="text-muted">
+                Showing {{ $completedSchedules->firstItem() }}–{{ $completedSchedules->lastItem() }}
+                of {{ $completedSchedules->total() }} job(s) ·
                 <strong>{{ number_format($stats['total_units']) }}</strong> total units
             </span>
-            <a href="{{ route('history.export-xlsx', ['department' => $department]) }}?{{ http_build_query(request()->only('period','from','to')) }}"
-               class="btn btn-sm btn-outline-success">
-                <i class="bi bi-download me-1"></i>Download XLSX
-            </a>
+            <div class="d-flex align-items-center gap-3">
+                {{ $completedSchedules->links() }}
+                <a href="{{ route('history.export-xlsx', ['department' => $department]) }}?{{ http_build_query(request()->only('period','from','to')) }}"
+                   class="btn btn-sm btn-outline-success flex-shrink-0">
+                    <i class="bi bi-download me-1"></i>Download XLSX
+                </a>
+            </div>
         </div>
     @endif
 </div>

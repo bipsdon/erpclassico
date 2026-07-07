@@ -30,6 +30,9 @@ class SchedulingService
 
     private const PIPELINE = ['design', 'print', 'sew'];
 
+    /** In-memory flag: date string → already rebuilt this request cycle. */
+    private static array $rebuiltDates = [];
+
     // ──────────────────────────────────────────────
     // Public API
     // ──────────────────────────────────────────────
@@ -50,7 +53,16 @@ class SchedulingService
 
     public function rebuildSchedules(?Carbon $asOf = null): void
     {
-        $today = ($asOf ?? now())->startOfDay();
+        $today   = ($asOf ?? now())->startOfDay();
+        $dateKey = $today->toDateString();
+
+        // Skip if already rebuilt during this request cycle AND we have a
+        // Laravel cache entry for today. Invalidated by clearScheduleCache().
+        $cacheKey = 'schedule_rebuilt_' . $dateKey;
+
+        if (isset(self::$rebuiltDates[$dateKey]) || \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return;
+        }
 
         $orders = Order::query()
             ->whereNotIn('status', ['cancelled', 'completed'])
@@ -70,6 +82,23 @@ class SchedulingService
                 $this->scheduleOrder($order, $today, $loadByDeptDate);
             }
         });
+
+        // Mark rebuilt for this request cycle and cache for 5 minutes.
+        // Short TTL means the queue auto-refreshes without manual intervention,
+        // while avoiding hammering the DB on every dashboard load within a burst.
+        self::$rebuiltDates[$dateKey] = true;
+        \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addMinutes(5));
+    }
+
+    /**
+     * Bust the schedule cache so the next dashboard load triggers a fresh rebuild.
+     * Call this after any order create / update / stage-complete / delete.
+     */
+    public static function clearScheduleCache(?Carbon $forDate = null): void
+    {
+        $dateKey = ($forDate ?? now())->toDateString();
+        self::$rebuiltDates = [];
+        \Illuminate\Support\Facades\Cache::forget('schedule_rebuilt_' . $dateKey);
     }
 
     // ──────────────────────────────────────────────

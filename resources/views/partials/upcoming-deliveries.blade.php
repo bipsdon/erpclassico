@@ -43,7 +43,7 @@
                         {{ $order->customer_name }}
                     </a>
                     <div class="text-muted text-truncate" style="font-size:.75rem">
-                        {{ $order->order_number }} &middot; {{ number_format($order->quantity) }} jerseys
+                        {{ $order->order_number }} &middot; {{ number_format($order->quantity) }} {{ $order->product_type_label }}
                     </div>
                 </div>
 

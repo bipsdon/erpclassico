@@ -92,6 +92,12 @@
                 </button>
             </form>
 
+            <div class="text-center mt-3">
+                <a href="{{ route('password.forgot') }}" class="text-muted small">
+                    <i class="bi bi-key me-1"></i>Forgot password?
+                </a>
+            </div>
+
         </div>
         <div class="card-footer bg-white text-center text-muted border-0 pb-4" style="font-size:.8rem">
             ERP Classico &copy; {{ date('Y') }}

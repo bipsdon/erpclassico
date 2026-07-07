@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PipelineNotification;
 use App\Models\PipelineNotificationRead;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,14 +13,15 @@ use Illuminate\View\View;
 class NotificationController extends Controller
 {
     // ──────────────────────────────────────────────
-    // Pipeline manager: send notifications
+    // Pipeline manager: compose & send
     // ──────────────────────────────────────────────
 
     public function create(): View
     {
         abort_unless(auth()->user()->isPipelineManager(), 403);
 
-        $sent = PipelineNotification::with('sender')
+        $sent = PipelineNotification::with(['sender', 'replies.sender'])
+            ->whereNull('reply_to_id')          // root messages only in the sent log
             ->orderByDesc('created_at')
             ->limit(20)
             ->get();
@@ -63,7 +65,8 @@ class NotificationController extends Controller
     {
         $user = auth()->user();
 
-        $notifications = PipelineNotification::with(['sender', 'reads'])
+        $notifications = PipelineNotification::with(['sender', 'reads', 'replies.sender'])
+            ->whereNull('reply_to_id')          // only show root messages in inbox
             ->where(function ($q) use ($user) {
                 $this->visibilityScope($q, $user);
             })
@@ -75,6 +78,42 @@ class NotificationController extends Controller
             ->flip();
 
         return view('notifications.inbox', compact('notifications', 'readIds'));
+    }
+
+    // ──────────────────────────────────────────────
+    // Reply (department → pipeline manager)
+    // ──────────────────────────────────────────────
+
+    public function reply(Request $request, PipelineNotification $notification): RedirectResponse
+    {
+        $user = auth()->user();
+
+        // Only dept users can reply (PM sends via create form)
+        abort_if($user->isPipelineManager(), 403, 'Pipeline managers use the Send Notification form.');
+
+        // Dept users can only reply to notifications they can see
+        abort_unless($notification->isVisibleTo($user), 403);
+
+        $data = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+        ]);
+
+        // Reply is always directed to pipeline_manager
+        PipelineNotification::create([
+            'sent_by'           => $user->id,
+            'reply_to_id'       => $notification->id,
+            'target_department' => 'pipeline_manager',
+            'subject'           => 'Re: ' . $notification->subject,
+            'message'           => $data['message'],
+        ]);
+
+        // Auto-mark the original as read
+        PipelineNotificationRead::firstOrCreate(
+            ['notification_id' => $notification->id, 'user_id' => $user->id],
+            ['read_at' => now()],
+        );
+
+        return back()->with('success', 'Reply sent to Pipeline Manager.');
     }
 
     // ──────────────────────────────────────────────
@@ -121,13 +160,14 @@ class NotificationController extends Controller
 
     public function unreadCount(): JsonResponse
     {
-        $user = auth()->user();
+        $user  = auth()->user();
 
+        // Count unread root messages + unread replies directed at this user's role
         $count = PipelineNotification::where(function ($q) use ($user) {
-            $this->visibilityScope($q, $user);
-        })
-        ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
-        ->count();
+                    $this->visibilityScope($q, $user);
+                })
+                ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
+                ->count();
 
         return response()->json(['count' => $count]);
     }
@@ -136,26 +176,15 @@ class NotificationController extends Controller
     // Shared visibility scope
     // ──────────────────────────────────────────────
 
-    /**
-     * Apply a WHERE clause that filters notifications visible to $user.
-     *
-     * Rules:
-     *  - null target (broadcast)       → visible to everyone
-     *  - 'pipeline_manager' target     → visible to pipeline_manager only
-     *  - 'designer' / 'printing_...'   → visible to that role + pipeline_manager
-     *  - pipeline_manager user         → sees everything
-     */
-    private function visibilityScope(\Illuminate\Database\Eloquent\Builder $q, \App\Models\User $user): void
+    private function visibilityScope(\Illuminate\Database\Eloquent\Builder $q, User $user): void
     {
         if ($user->isPipelineManager()) {
-            // PM sees all: broadcasts, dept-targeted, and PM-targeted
-            $q->whereNull('target_department')
-              ->orWhereNotNull('target_department');
+            // PM sees everything: broadcasts, all dept-targeted, and PM-targeted (replies)
             return;
         }
 
-        // Department users see: broadcasts + notifications targeted at their role
-        // They do NOT see 'pipeline_manager'-targeted notifications
+        // Department users: broadcasts + messages targeted at their role
+        // Replies targeting 'pipeline_manager' are not shown to dept users
         $q->whereNull('target_department')
           ->orWhere('target_department', $user->role);
     }

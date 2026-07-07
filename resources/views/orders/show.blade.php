@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', $order->order_number)
+@section('title', $order->whatsapp_order_id ?? $order->order_number)
 @section('page-title')
-    <i class="bi bi-receipt me-2 text-primary"></i>{{ $order->order_number }}
+    <i class="bi bi-receipt me-2 text-primary"></i>{{ $order->whatsapp_order_id ?? $order->order_number }}
 @endsection
 
 @section('content')
@@ -60,8 +60,9 @@
                 <div class="row g-3 align-items-center">
 
                     <div class="col-12 col-sm-6">
-                        <div class="text-muted small mb-1">Order Number</div>
-                        <div class="fw-bold fs-5">{{ $order->order_number }}</div>
+                        <div class="text-muted small mb-1">WhatsApp Order ID</div>
+                        <div class="fw-bold fs-5">{{ $order->whatsapp_order_id ?? '—' }}</div>
+                        <div class="text-muted small">Ref: {{ $order->order_number }}</div>
                     </div>
 
                     <div class="col-6 col-sm-3 text-sm-center">
@@ -87,7 +88,7 @@
                     <div class="col-6 col-md-2 text-center">
                         <div class="text-muted small">Quantity</div>
                         <div class="fw-bold fs-4 text-primary">{{ number_format($order->quantity) }}</div>
-                        <div class="text-muted small">jerseys</div>
+                        <div class="text-muted small">{{ $order->product_type_label }}</div>
                     </div>
 
                     <div class="col-6 col-md-2 text-center">
@@ -296,36 +297,72 @@
                 <i class="bi bi-calendar-check me-2 text-primary"></i>Production Schedule
             </div>
             <ul class="list-group list-group-flush">
+                @php
+                    $deptRoles = [
+                        'design' => 'designer',
+                        'print'  => 'printing_manager',
+                        'sew'    => 'sewing_manager',
+                    ];
+                    $authUser = auth()->user();
+                @endphp
                 @foreach(['design' => 'Design', 'print' => 'Print', 'sew' => 'Sewing'] as $dept => $label)
-                    @php $slot = $order->productionSchedules->firstWhere('department', $dept); @endphp
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
-                        <div>
-                            <span class="fw-semibold" style="font-size:.875rem">{{ $label }}</span>
-                        </div>
-                        <div class="text-end">
-                            @if($slot)
-                                @if($slot->completed_at)
+                    @php
+                        $slot        = $order->productionSchedules->firstWhere('department', $dept);
+                        $canAct      = $authUser->isPipelineManager() || $authUser->role === $deptRoles[$dept];
+                        $isActive    = $order->stage === $dept;
+                        $isInProgress = $isActive && $order->status === 'in_progress';
+                    @endphp
+                    <li class="list-group-item px-3 py-2">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <span class="fw-semibold" style="font-size:.875rem">{{ $label }}</span>
+                            </div>
+                            <div class="text-end">
+                                @if($slot && $slot->completed_at)
                                     <span class="badge bg-success">
                                         <i class="bi bi-check2 me-1"></i>Done
                                     </span>
                                     <div class="text-muted mt-1" style="font-size:.7rem">
                                         {{ $slot->completed_at->format('d M Y H:i') }}
                                     </div>
-                                @else
+                                @elseif($slot)
                                     <span class="badge bg-primary">
                                         {{ $slot->scheduled_date->format('d M Y') }}
                                     </span>
                                     <div class="text-muted mt-1" style="font-size:.7rem">
-                                        {{ number_format($slot->quantity_scheduled) }} jerseys
+                                        {{ number_format($slot->quantity_scheduled) }} {{ $order->product_type_label }}
                                         @if($slot->is_overtime)
                                             <span class="badge bg-danger ms-1">OT</span>
                                         @endif
                                     </div>
+                                @else
+                                    <span class="text-muted small">Not scheduled</span>
                                 @endif
-                            @else
-                                <span class="text-muted small">Not scheduled</span>
-                            @endif
+                            </div>
                         </div>
+
+                        {{-- Action buttons — only for the active stage and authorised roles --}}
+                        @if($canAct && $isActive)
+                            <div class="d-flex gap-2 mt-2">
+                                @if(! $isInProgress)
+                                    <form method="POST"
+                                          action="{{ route('production.start', [$dept, $order->id]) }}">
+                                        @csrf @method('PATCH')
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-play-fill me-1"></i>Start
+                                        </button>
+                                    </form>
+                                @endif
+                                <form method="POST"
+                                      action="{{ route('production.complete', [$dept, $order->id]) }}"
+                                      onsubmit="return confirm('Mark {{ $label }} as complete for this order?')">
+                                    @csrf @method('PATCH')
+                                    <button class="btn btn-sm btn-success">
+                                        <i class="bi bi-check2 me-1"></i>Mark Complete
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
                     </li>
                 @endforeach
             </ul>

@@ -179,7 +179,7 @@
                     <label for="stage" class="form-label fw-semibold">Stage</label>
                     <select id="stage" name="stage" class="form-select">
                         @foreach(['design' => 'Design', 'print' => 'Print', 'sew' => 'Sewing', 'ready' => 'Ready', 'delivered' => 'Delivered'] as $val => $label)
-                            <option value="{{ $val }}" {{ $old('stage') === $val ? 'selected' : '' }}>
+                            <option value="{{ $val }}" {{ $old('stage', $order->stage) === $val ? 'selected' : '' }}>
                                 {{ $label }}
                             </option>
                         @endforeach
@@ -190,7 +190,7 @@
                     <label for="status" class="form-label fw-semibold">Status</label>
                     <select id="status" name="status" class="form-select">
                         @foreach(['pending' => 'Pending', 'in_progress' => 'In Progress', 'completed' => 'Completed', 'on_hold' => 'On Hold', 'cancelled' => 'Cancelled'] as $val => $label)
-                            <option value="{{ $val }}" {{ $old('status') === $val ? 'selected' : '' }}>
+                            <option value="{{ $val }}" {{ $old('status', $order->status) === $val ? 'selected' : '' }}>
                                 {{ $label }}
                             </option>
                         @endforeach
