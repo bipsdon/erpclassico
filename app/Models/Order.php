@@ -1,0 +1,218 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\CapacityConfig;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+
+class Order extends Model
+{
+    use SoftDeletes;
+
+    protected $fillable = [
+        'order_number',
+        'customer_name',
+        'customer_phone',
+        'whatsapp_order_id',
+        'quantity',
+        'product_type',
+        'order_date',
+        'delivery_date',
+        'priority',
+        'stage',
+        'status',
+        'details',
+        'notes',
+        'created_by',
+    ];
+
+    // ──────────────────────────────────────────────
+    // Casts
+    // ──────────────────────────────────────────────
+
+    protected function casts(): array
+    {
+        return [
+            'order_date'    => 'date',
+            'delivery_date' => 'date',
+            'quantity'      => 'integer',
+        ];
+    }
+
+    // ──────────────────────────────────────────────
+    // Accessors / computed properties
+    // ──────────────────────────────────────────────
+
+    /**
+     * Human-readable product type label.
+     */
+    public function getProductTypeLabelAttribute(): string
+    {
+        return CapacityConfig::productTypes()[$this->product_type] ?? ucfirst($this->product_type);
+    }
+
+    /**
+     * True when delivery_date is in the past and order is not yet delivered.
+     */
+    public function getIsLateAttribute(): bool
+    {
+        return $this->delivery_date->isPast()
+            && $this->stage !== 'delivered';
+    }
+
+    /**
+     * Human-readable stage label.
+     */
+    public function getStageLabelAttribute(): string
+    {
+        return match ($this->stage) {
+            'design'    => 'Design',
+            'print'     => 'Print',
+            'sew'       => 'Sew',
+            'ready'     => 'Ready for Delivery',
+            'delivered' => 'Delivered',
+            default     => ucfirst($this->stage),
+        };
+    }
+
+    /**
+     * Badge colour class (Bootstrap) for priority.
+     */
+    public function getPriorityBadgeAttribute(): string
+    {
+        return match ($this->priority) {
+            'rush'     => 'warning',
+            'critical' => 'danger',
+            default    => 'secondary',
+        };
+    }
+
+    /**
+     * Badge colour class (Bootstrap) for status.
+     */
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'pending'     => 'secondary',
+            'in_progress' => 'primary',
+            'completed'   => 'success',
+            'on_hold'     => 'warning',
+            'cancelled'   => 'danger',
+            default       => 'light',
+        };
+    }
+
+    /**
+     * Days remaining until delivery (negative = overdue).
+     */
+    public function getDaysRemainingAttribute(): int
+    {
+        return (int) now()->startOfDay()->diffInDays($this->delivery_date, false);
+    }
+
+    // ──────────────────────────────────────────────
+    // Scopes
+    // ──────────────────────────────────────────────
+
+    /** Orders currently in a given department stage. */
+    public function scopeInStage($query, string $stage)
+    {
+        return $query->where('stage', $stage);
+    }
+
+    /** Active (not cancelled/delivered) orders. */
+    public function scopeActive($query)
+    {
+        return $query->whereNotIn('status', ['cancelled'])
+                     ->where('stage', '!=', 'delivered');
+    }
+
+    /** Rush and critical orders — always floated to top. */
+    public function scopeRush($query)
+    {
+        return $query->whereIn('priority', ['rush', 'critical']);
+    }
+
+    /** Orders past their delivery date that are not yet delivered. */
+    public function scopeLate($query)
+    {
+        return $query->where('delivery_date', '<', now()->toDateString())
+                     ->where('stage', '!=', 'delivered');
+    }
+
+    /**
+     * Standard priority sort: critical → rush → normal, then earliest delivery first.
+     */
+    public function scopePriorityOrdered($query)
+    {
+        return $query->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
+                     ->orderBy('delivery_date');
+    }
+
+    // ──────────────────────────────────────────────
+    // Relationships
+    // ──────────────────────────────────────────────
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function players(): HasMany
+    {
+        return $this->hasMany(OrderPlayer::class)->orderBy('sort_order');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(OrderAttachment::class);
+    }
+
+    public function productionSchedules(): HasMany
+    {
+        return $this->hasMany(ProductionSchedule::class);
+    }
+
+    public function stageLogs(): HasMany
+    {
+        return $this->hasMany(OrderStageLog::class)->latest('created_at');
+    }
+
+    // ──────────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────────
+
+    /** Schedule slot for a specific department. */
+    public function scheduleFor(string $department): ?ProductionSchedule
+    {
+        return $this->productionSchedules
+            ->firstWhere('department', $department);
+    }
+
+    /**
+     * Auto-generate order number: ORD-YYYYMM-XXXX
+     * Called before the model is created.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order) {
+            if (empty($order->order_number)) {
+                $prefix = 'ORD-' . now()->format('Ym') . '-';
+                $last   = static::withTrashed()
+                    ->where('order_number', 'like', $prefix . '%')
+                    ->orderByDesc('id')
+                    ->value('order_number');
+
+                $sequence = $last
+                    ? ((int) substr($last, -4)) + 1
+                    : 1;
+
+                $order->order_number = $prefix . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+            }
+        });
+    }
+}
