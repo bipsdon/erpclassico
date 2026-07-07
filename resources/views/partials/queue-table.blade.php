@@ -107,18 +107,19 @@
             </div>
         @else
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 queue-table">
+                @php $tableId = 'queue-' . $queue->department; @endphp
+                <table id="{{ $tableId }}" class="table table-hover align-middle mb-0 queue-table" data-sortable>
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width:1%">#</th>
-                            <th>Order</th>
-                            <th>Customer</th>
-                            <th class="text-center">Product</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-center">Load</th>
-                            <th class="text-center">Priority</th>
-                            <th class="text-center">Delivery</th>
-                            <th class="text-center">Status</th>
+                            <th class="ps-3 sort-th" style="width:1%" data-col="0" data-default="asc">#</th>
+                            <th class="sort-th" data-col="1">Order</th>
+                            <th class="sort-th" data-col="2">Customer</th>
+                            <th class="text-center sort-th" data-col="3">Product</th>
+                            <th class="text-center sort-th" data-col="4">Qty</th>
+                            <th class="text-center sort-th" data-col="5">Load</th>
+                            <th class="text-center sort-th" data-col="6">Priority</th>
+                            <th class="text-center sort-th" data-col="7">Delivery</th>
+                            <th class="text-center sort-th" data-col="8">Status</th>
                             @if($showCompletedBtn)
                                 <th class="text-center pe-3">Action</th>
                             @endif
@@ -127,9 +128,9 @@
                     <tbody>
                         @foreach($queue->orders as $i => $order)
                             <tr class="{{ $order->isLate ? 'table-danger' : '' }}">
-                                <td class="ps-3 text-muted" style="font-size:.8rem">{{ $i + 1 }}</td>
+                                <td class="ps-3 text-muted" style="font-size:.8rem" data-val="{{ $i + 1 }}">{{ $i + 1 }}</td>
 
-                                <td>
+                                <td data-val="{{ $order->orderNumber }}">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="health-dot bg-{{ $order->healthBadge() }}"></span>
                                         <div>
@@ -150,17 +151,17 @@
                                     </div>
                                 </td>
 
-                                <td style="font-size:.875rem">{{ $order->customerName }}</td>
+                                <td style="font-size:.875rem" data-val="{{ $order->customerName }}">{{ $order->customerName }}</td>
 
-                                <td class="text-center">
+                                <td class="text-center" data-val="{{ $order->productTypeLabel }}">
                                     <span class="badge bg-light text-secondary border" style="font-size:.72rem">
                                         {{ $order->productTypeLabel }}
                                     </span>
                                 </td>
 
-                                <td class="text-center fw-semibold">{{ number_format($order->quantity) }}</td>
+                                <td class="text-center fw-semibold" data-val="{{ $order->quantity }}">{{ number_format($order->quantity) }}</td>
 
-                                <td class="text-center">
+                                <td class="text-center" data-val="{{ $order->dayPercent() }}">
                                     @if($order->dayFraction > 0)
                                         <span class="badge bg-{{ $order->dayPercent() > 100 ? 'warning text-dark' : 'light text-secondary border' }}"
                                               style="font-size:.72rem">
@@ -171,13 +172,13 @@
                                     @endif
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center" data-val="{{ ['critical'=>0,'rush'=>1,'normal'=>2][$order->priority] ?? 9 }}">
                                     <span class="badge bg-{{ $order->priorityBadge() }}">
                                         {{ ucfirst($order->priority) }}
                                     </span>
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center" data-val="{{ $order->deliveryDate }}">
                                     <div style="font-size:.8rem">
                                         {{ \Carbon\Carbon::parse($order->deliveryDate)->format('d M') }}
                                     </div>
@@ -196,7 +197,7 @@
                                     </span>
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center" data-val="{{ $order->orderStatus }}">
                                     @php
                                         $statusBadge = match($order->orderStatus) {
                                             'in_progress' => 'primary',
@@ -254,9 +255,20 @@
             <i class="bi bi-calendar3 me-1"></i>
             {{ \Carbon\Carbon::parse($queue->date)->format('l, d F Y') }}
         </span>
-        <span>
-            {{ count($queue->orders) }} order(s) ·
-            <strong>{{ number_format($queue->totalUnits()) }}</strong> units
-        </span>
+        <div class="d-flex align-items-center gap-3">
+            <span>
+                {{ count($queue->orders) }} order(s) ·
+                <strong>{{ number_format($queue->totalUnits()) }}</strong> units
+            </span>
+            @if(count($queue->orders) > 1)
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary py-0 px-2 queue-sort-reset"
+                        data-table="{{ $tableId ?? 'queue-' . $queue->department }}"
+                        title="Reset to default sort"
+                        style="font-size:.72rem">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset sort
+                </button>
+            @endif
+        </div>
     </div>
 </div>

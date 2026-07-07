@@ -212,32 +212,32 @@
                     <span class="badge bg-primary rounded-pill ms-1">{{ $order->players->count() }}</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0 align-middle">
+                    <table id="players-table" class="table table-sm table-hover mb-0 align-middle" data-sortable>
                         <thead class="table-light queue-table">
                             <tr>
-                                <th class="ps-3">#</th>
-                                <th>Player Name</th>
-                                <th class="text-center">Jersey #</th>
-                                <th class="text-center">Size</th>
-                                <th>Notes</th>
+                                <th class="ps-3 sort-th" data-col="0" data-default="asc">#</th>
+                                <th class="sort-th" data-col="1">Player Name</th>
+                                <th class="text-center sort-th" data-col="2">Jersey #</th>
+                                <th class="text-center sort-th" data-col="3">Size</th>
+                                <th class="sort-th" data-col="4">Notes</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($order->players as $player)
                                 <tr>
-                                    <td class="ps-3 text-muted">{{ $loop->iteration }}</td>
-                                    <td class="fw-semibold">{{ $player->player_name }}</td>
-                                    <td class="text-center">
+                                    <td class="ps-3 text-muted" data-val="{{ $loop->iteration }}">{{ $loop->iteration }}</td>
+                                    <td class="fw-semibold" data-val="{{ $player->player_name }}">{{ $player->player_name }}</td>
+                                    <td class="text-center" data-val="{{ $player->jersey_number }}">
                                         <span class="badge bg-dark fs-6">{{ $player->jersey_number }}</span>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-val="{{ $player->size ?? '' }}">
                                         @if($player->size)
                                             <span class="badge bg-light text-dark border">{{ $player->size }}</span>
                                         @else
                                             <span class="text-muted">—</span>
                                         @endif
                                     </td>
-                                    <td class="text-muted" style="font-size:.85rem">{{ $player->notes ?? '—' }}</td>
+                                    <td class="text-muted" data-val="{{ $player->notes ?? '' }}" style="font-size:.85rem">{{ $player->notes ?? '—' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

@@ -494,5 +494,101 @@
 @endauth
 
 @stack('scripts')
+
+{{-- ── Sortable tables ──────────────────────────────────────
+     Works on any <table data-sortable>.
+     Headers: <th class="sort-th" data-col="N">
+     Cells:   <td data-val="sortable-value">
+     data-default="asc|desc" on a th sets the initial sort column.
+──────────────────────────────────────────────────────────── --}}
+<style>
+    .sort-th { cursor: pointer; user-select: none; white-space: nowrap; }
+    .sort-th::after { content: ' \F282'; font-family: 'bootstrap-icons'; font-size: .7rem; opacity: .35; }
+    .sort-th.sort-asc::after  { content: ' \F57A'; opacity: 1; color: var(--bs-primary); }
+    .sort-th.sort-desc::after { content: ' \F574'; opacity: 1; color: var(--bs-primary); }
+</style>
+<script>
+(function () {
+    function cellVal(row, col) {
+        const td = row.cells[col];
+        if (!td) return '';
+        const v = td.dataset.val ?? td.innerText.trim();
+        return isNaN(v) ? v.toLowerCase() : Number(v);
+    }
+
+    function sortTable(table, col, dir) {
+        const tbody = table.tBodies[0];
+        const rows  = Array.from(tbody.rows);
+        rows.sort((a, b) => {
+            const va = cellVal(a, col), vb = cellVal(b, col);
+            if (va < vb) return dir === 'asc' ? -1 :  1;
+            if (va > vb) return dir === 'asc' ?  1 : -1;
+            return 0;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+
+        // Update header arrows
+        table.querySelectorAll('.sort-th').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+            if (parseInt(th.dataset.col) === col) {
+                th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+        });
+
+        // Store current sort state on the table element
+        table._sortCol = col;
+        table._sortDir = dir;
+    }
+
+    function initSortable(table) {
+        // Find default column (data-default attribute)
+        let defaultCol = 0, defaultDir = 'asc';
+        table.querySelectorAll('.sort-th[data-default]').forEach(th => {
+            defaultCol = parseInt(th.dataset.col);
+            defaultDir = th.dataset.default || 'asc';
+        });
+
+        // Apply default sort silently
+        sortTable(table, defaultCol, defaultDir);
+
+        // Click handlers
+        table.querySelectorAll('.sort-th').forEach(th => {
+            th.addEventListener('click', () => {
+                const col = parseInt(th.dataset.col);
+                const cur = table._sortCol;
+                const dir = (cur === col && table._sortDir === 'asc') ? 'desc' : 'asc';
+                sortTable(table, col, dir);
+            });
+        });
+    }
+
+    // Reset buttons
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.queue-sort-reset');
+        if (!btn) return;
+        const table = document.getElementById(btn.dataset.table);
+        if (!table) return;
+        // Reset to default col
+        let defaultCol = 0, defaultDir = 'asc';
+        table.querySelectorAll('.sort-th[data-default]').forEach(th => {
+            defaultCol = parseInt(th.dataset.col);
+            defaultDir = th.dataset.default || 'asc';
+        });
+        sortTable(table, defaultCol, defaultDir);
+    });
+
+    // Init all sortable tables on page load and after any Blade render
+    function initAll() {
+        document.querySelectorAll('table[data-sortable]').forEach(t => {
+            if (!t._sortInitialised) {
+                t._sortInitialised = true;
+                initSortable(t);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initAll);
+})();
+</script>
 </body>
 </html>
