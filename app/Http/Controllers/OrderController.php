@@ -180,6 +180,64 @@ class OrderController extends Controller
     }
 
     // ──────────────────────────────────────────────
+    // Duplicate
+    // ──────────────────────────────────────────────
+
+    public function duplicate(Order $order): RedirectResponse
+    {
+        $this->authorizeManager();
+
+        $order->load('players');
+
+        DB::transaction(function () use ($order) {
+            $newOrder = Order::create([
+                'customer_name'     => $order->customer_name,
+                'customer_phone'    => $order->customer_phone,
+                'whatsapp_order_id' => $order->whatsapp_order_id,
+                'quantity'          => $order->quantity,
+                'product_type'      => $order->product_type,
+                'order_date'        => now()->toDateString(),
+                'delivery_date'     => $order->delivery_date->toDateString(),
+                'priority'          => $order->priority,
+                'details'           => $order->details,
+                'notes'             => $order->notes,
+                'stage'             => 'design',
+                'status'            => 'pending',
+                'created_by'        => auth()->id(),
+            ]);
+
+            // Duplicate players list (strip IDs so new rows are created)
+            foreach ($order->players as $player) {
+                $newOrder->players()->create([
+                    'player_name'   => $player->player_name,
+                    'jersey_number' => $player->jersey_number,
+                    'size'          => $player->size,
+                    'notes'         => $player->notes,
+                    'sort_order'    => $player->sort_order,
+                ]);
+            }
+
+            // Attachments are NOT copied — files on disk are tied to the
+            // original order folder and should be re-uploaded if needed.
+
+            OrderStageLog::create([
+                'order_id'    => $newOrder->id,
+                'from_stage'  => null,
+                'to_stage'    => 'design',
+                'from_status' => null,
+                'to_status'   => 'pending',
+                'changed_by'  => auth()->id(),
+                'notes'       => "Duplicated from order {$order->order_number}.",
+            ]);
+        });
+
+        SchedulingService::clearScheduleCache();
+
+        return redirect()->route('orders.index')
+            ->with('success', "Order {$order->order_number} duplicated successfully. New order created and placed in Design queue.");
+    }
+
+    // ──────────────────────────────────────────────
     // Destroy
     // ──────────────────────────────────────────────
 

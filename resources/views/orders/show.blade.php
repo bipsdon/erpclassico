@@ -39,6 +39,14 @@
             <i class="bi bi-pencil me-1"></i>Edit Order
         </a>
         <form method="POST"
+              action="{{ route('orders.duplicate', $order) }}"
+              onsubmit="return confirm('Duplicate {{ addslashes($order->whatsapp_order_id ?? $order->order_number) }}? A new order will be created in the Design queue with the same details.')">
+            @csrf
+            <button class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-copy me-1"></i>Duplicate
+            </button>
+        </form>
+        <form method="POST"
               action="{{ route('orders.destroy', $order) }}"
               onsubmit="return confirm('Delete {{ $order->order_number }}?')">
             @csrf @method('DELETE')

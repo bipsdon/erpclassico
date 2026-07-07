@@ -94,6 +94,12 @@ Route::middleware('auth')->group(function () {
     // ─── Orders CRUD ─────────────────────────────────────────
     Route::resource('orders', OrderController::class);
 
+    // ─── Order duplicate ─────────────────────────────────────
+    Route::post('/orders/{order}/duplicate',
+        [OrderController::class, 'duplicate'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.duplicate');
+
     // ─── Order exports ───────────────────────────────────────
     Route::get('/orders/{order}/export/pdf',
         [OrderController::class, 'exportPdf'])
