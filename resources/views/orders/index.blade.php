@@ -54,7 +54,7 @@
                     <input type="text"
                            name="search"
                            class="form-control"
-                           placeholder="Order #, customer name, phone…"
+                           placeholder="WhatsApp ID, order #, customer…"
                            value="{{ request('search') }}">
                 </div>
             </div>
@@ -104,20 +104,76 @@
 </div>
 
 {{-- ── Orders table ──────────────────────────────────────── --}}
+@php
+    /**
+     * Helper: build the URL for a sortable column header.
+     * Clicking the active column toggles asc/desc.
+     * Clicking a different column always starts asc.
+     */
+    $sortUrl = function (string $key) use ($sortKey, $sortDir): string {
+        $newDir = ($sortKey === $key && $sortDir === 'asc') ? 'desc' : 'asc';
+        return request()->fullUrlWithQuery(['sort' => $key, 'dir' => $newDir, 'page' => 1]);
+    };
+
+    $sortIcon = function (string $key) use ($sortKey, $sortDir): string {
+        if ($sortKey !== $key) return 'bi-arrow-down-up text-muted opacity-50';
+        return $sortDir === 'asc' ? 'bi-sort-down-alt text-primary' : 'bi-sort-up text-primary';
+    };
+@endphp
+
 <div class="card border-0 shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0 queue-table">
             <thead class="table-light">
                 <tr>
-                    <th class="ps-3" style="width:1%"></th>
-                    <th>Order #</th>
-                    <th>Customer</th>
-                    <th class="text-center">Product</th>
-                    <th class="text-center">Qty</th>
-                    <th class="text-center">Stage</th>
-                    <th class="text-center">Priority</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center">Delivery</th>
+                    <th class="ps-3" style="width:1%">
+                        {{-- Default sort --}}
+                        <a href="{{ request()->fullUrlWithQuery(['sort' => 'default', 'dir' => 'asc', 'page' => 1]) }}"
+                           class="text-decoration-none text-muted"
+                           title="Reset to default sort (priority + delivery date)">
+                            <i class="bi bi-arrow-counterclockwise {{ $sortKey === 'default' ? 'text-primary' : 'opacity-50' }}" style="font-size:.85rem"></i>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="{{ $sortUrl('order_number') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                            Order # <i class="bi {{ $sortIcon('order_number') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="{{ $sortUrl('customer') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
+                            Customer <i class="bi {{ $sortIcon('customer') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
+                    <th class="text-center">
+                        <a href="{{ $sortUrl('quantity') }}" class="text-decoration-none text-dark d-inline-flex align-items-center justify-content-center gap-1">
+                            Qty <i class="bi {{ $sortIcon('quantity') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
+                    <th class="text-center">
+                        <a href="{{ $sortUrl('product_type') }}" class="text-decoration-none text-dark d-inline-flex align-items-center justify-content-center gap-1">
+                            Product <i class="bi {{ $sortIcon('product_type') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
+                    <th class="text-center">
+                        <a href="{{ $sortUrl('stage') }}" class="text-decoration-none text-dark d-inline-flex align-items-center justify-content-center gap-1">
+                            Stage <i class="bi {{ $sortIcon('stage') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
+                    <th class="text-center">
+                        <a href="{{ $sortUrl('priority') }}" class="text-decoration-none text-dark d-inline-flex align-items-center justify-content-center gap-1">
+                            Priority <i class="bi {{ $sortIcon('priority') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
+                    <th class="text-center">
+                        <a href="{{ $sortUrl('status') }}" class="text-decoration-none text-dark d-inline-flex align-items-center justify-content-center gap-1">
+                            Status <i class="bi {{ $sortIcon('status') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
+                    <th class="text-center">
+                        <a href="{{ $sortUrl('delivery_date') }}" class="text-decoration-none text-dark d-inline-flex align-items-center justify-content-center gap-1">
+                            Delivery <i class="bi {{ $sortIcon('delivery_date') }}" style="font-size:.75rem"></i>
+                        </a>
+                    </th>
                     <th class="text-center">Players</th>
                     <th class="pe-3 text-end">Actions</th>
                 </tr>
@@ -136,8 +192,11 @@
                         <td>
                             <a href="{{ route('orders.show', $order) }}"
                                class="fw-semibold text-decoration-none text-dark">
-                                {{ $order->order_number }}
+                                {{ $order->whatsapp_order_id ?? $order->order_number }}
                             </a>
+                            @if($order->whatsapp_order_id)
+                                <div class="text-muted" style="font-size:.72rem">{{ $order->order_number }}</div>
+                            @endif
                         </td>
 
                         <td>

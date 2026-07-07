@@ -49,28 +49,49 @@ class OrderController extends Controller
             $query->where('status', $status);
         }
 
-        // Search by order number or customer name
+        // Search by order number, whatsapp id, or customer name/phone
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('whatsapp_order_id', 'like', "%{$search}%")
                   ->orWhere('customer_name', 'like', "%{$search}%")
                   ->orWhere('customer_phone', 'like', "%{$search}%");
             });
         }
 
-        // Default sort: priority then delivery date
-        $orders = $query
-            ->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
-            ->orderBy('delivery_date')
-            ->paginate(25)
-            ->withQueryString();
+        // Sortable columns whitelist: query param => DB column(s)
+        $sortable = [
+            'order_number'  => ['order_number'],
+            'customer'      => ['customer_name'],
+            'quantity'      => ['quantity'],
+            'product_type'  => ['product_type'],
+            'stage'         => ['stage'],
+            'priority'      => ['priority'],
+            'status'        => ['status'],
+            'delivery_date' => ['delivery_date'],
+        ];
+
+        $sortKey = $request->input('sort', 'default');
+        $sortDir = $request->input('dir', 'asc') === 'desc' ? 'desc' : 'asc';
+
+        if ($sortKey !== 'default' && isset($sortable[$sortKey])) {
+            foreach ($sortable[$sortKey] as $col) {
+                $query->orderBy($col, $sortDir);
+            }
+        } else {
+            // Default: critical → rush → normal, then earliest delivery first
+            $query->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
+                  ->orderBy('delivery_date');
+        }
+
+        $orders = $query->paginate(25)->withQueryString();
 
         $stageCounts = Order::selectRaw('stage, count(*) as total')
             ->whereNotIn('status', ['cancelled'])
             ->groupBy('stage')
             ->pluck('total', 'stage');
 
-        return view('orders.index', compact('orders', 'stageCounts'));
+        return view('orders.index', compact('orders', 'stageCounts', 'sortKey', 'sortDir'));
     }
 
     // ──────────────────────────────────────────────
