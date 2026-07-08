@@ -235,8 +235,17 @@
                 </thead>
                 <tbody>
                     @foreach($completedSchedules as $i => $schedule)
-                        @php $order = $schedule->order; @endphp
-                        <tr class="{{ $order->is_late ? 'table-danger' : '' }}">
+                        @php
+                            $order = $schedule->order;
+                            // "Late" means the work was finished on a day AFTER the delivery date.
+                            // We compare dates only (not times) so completing at any point on the
+                            // delivery day itself is considered on time.
+                            $completedDate   = \Carbon\Carbon::parse($schedule->completed_at)->startOfDay();
+                            $deliveryDate    = $order->delivery_date->copy()->startOfDay();
+                            $completedLate   = $completedDate->gt($deliveryDate);
+                            $daysOverdue     = $completedLate ? (int) $deliveryDate->diffInDays($completedDate) : 0;
+                        @endphp
+                        <tr class="{{ $completedLate ? 'table-danger' : '' }}">
 
                             <td class="ps-3 text-muted" style="font-size:.78rem">
                                 {{ ($completedSchedules->currentPage() - 1) * $completedSchedules->perPage() + $loop->iteration }}
@@ -303,9 +312,9 @@
                                 <div style="font-size:.8rem">
                                     {{ $order->delivery_date->format('d M Y') }}
                                 </div>
-                                @if($order->is_late)
+                                @if($completedLate)
                                     <span class="days-chip bg-danger text-white">
-                                        {{ abs($order->days_remaining) }}d late
+                                        {{ $daysOverdue }}d late
                                     </span>
                                 @else
                                     <span class="days-chip bg-success text-white">On time</span>

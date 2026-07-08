@@ -66,7 +66,9 @@ class StaffPerformanceController extends Controller
             ->groupBy('changed_by')
             ->pluck('started_count', 'changed_by');
 
-        // ── Late completions: completed_at > orders.delivery_date ─────────
+        // ── Late completions: completed on a day AFTER orders.delivery_date ──
+        // DATE(completed_at) > delivery_date means completing at any time on
+        // the delivery day itself counts as on time.
         $lateCompletions = DB::table('production_schedules')
             ->join('orders', 'production_schedules.order_id', '=', 'orders.id')
             ->whereIn('production_schedules.completed_by', $workerIds)
@@ -74,7 +76,7 @@ class StaffPerformanceController extends Controller
                 $from->copy()->startOfDay(),
                 $to->copy()->endOfDay(),
             ])
-            ->whereColumn('production_schedules.completed_at', '>', 'orders.delivery_date')
+            ->whereRaw('DATE(production_schedules.completed_at) > orders.delivery_date')
             ->select(
                 'production_schedules.completed_by',
                 DB::raw('COUNT(*) as late_count')

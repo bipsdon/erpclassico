@@ -124,11 +124,12 @@ class HistoryController extends Controller
             ->selectRaw('COUNT(*) as total, SUM(quantity_scheduled) as units')
             ->first();
 
-        // "Late" = completed after the order's delivery_date
-        // We join orders to check delivery_date vs completed_at
+        // "Late" = completed on a day AFTER the order's delivery_date.
+        // Using DATE(completed_at) > delivery_date so that completing at any
+        // time on the delivery day itself counts as on time.
         $lateCount = (clone $base)
             ->join('orders', 'production_schedules.order_id', '=', 'orders.id')
-            ->whereColumn('production_schedules.completed_at', '>', 'orders.delivery_date')
+            ->whereRaw('DATE(production_schedules.completed_at) > orders.delivery_date')
             ->count();
 
         $total = (int) ($totals->total ?? 0);

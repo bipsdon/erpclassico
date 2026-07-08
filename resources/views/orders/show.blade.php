@@ -327,9 +327,29 @@
                             </div>
                             <div class="text-end">
                                 @if($slot && $slot->completed_at)
-                                    <span class="badge bg-success">
-                                        <i class="bi bi-check2 me-1"></i>Done
-                                    </span>
+                                    @php
+                                        // Revert is available when the order's current stage is
+                                        // the one immediately after this completed stage.
+                                        $nextOf     = ['design' => 'print', 'print' => 'sew', 'sew' => 'ready'];
+                                        $canRevert  = $authUser->isPipelineManager()
+                                                      && isset($nextOf[$dept])
+                                                      && $order->stage === $nextOf[$dept];
+                                    @endphp
+                                    <div class="d-flex align-items-center gap-2 justify-content-end flex-wrap">
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check2 me-1"></i>Done
+                                        </span>
+                                        @if($canRevert)
+                                            <form method="POST"
+                                                  action="{{ route('production.revert', [$dept, $order->id]) }}"
+                                                  onsubmit="return confirm('Revert {{ $order->order_number }} from {{ $nextOf[$dept] }} back to {{ $dept }}?')">
+                                                @csrf @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-outline-warning py-0 px-2">
+                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Revert
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                     <div class="text-muted mt-1" style="font-size:.7rem">
                                         {{ $slot->completed_at->format('d M Y H:i') }}
                                     </div>
