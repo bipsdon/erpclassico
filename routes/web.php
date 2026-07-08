@@ -138,11 +138,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:pipeline_manager,designer,printing_manager,sewing_manager')
         ->name('production.start');
 
-    Route::patch('/production/{department}/{orderId}/revert',
-        [ProductionController::class, 'revert'])
-        ->middleware('role:pipeline_manager')
-        ->name('production.revert');
-
     Route::patch('/production/{order}/deliver',
         [ProductionController::class, 'deliver'])
         ->middleware('role:pipeline_manager')
