@@ -56,11 +56,12 @@ class Order extends Model
     }
 
     /**
-     * True when delivery_date is in the past and order is not yet delivered.
+     * True when delivery_date is strictly before today and order is not yet delivered.
+     * An order due today is not considered late.
      */
     public function getIsLateAttribute(): bool
     {
-        return $this->delivery_date->isPast()
+        return $this->delivery_date->startOfDay()->lt(now()->startOfDay())
             && $this->stage !== 'delivered';
     }
 
