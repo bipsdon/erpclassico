@@ -143,6 +143,52 @@
                 @enderror
             </div>
 
+            {{-- Production Pipeline --}}
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">
+                    Production Stages <span class="text-danger">*</span>
+                </label>
+                @php
+                    $activePipeline = old('pipeline',
+                        $editing ? $order->effectivePipeline() : ['design', 'print', 'sew']
+                    );
+                @endphp
+                <div class="d-flex gap-4 flex-wrap pt-1">
+                    @foreach([
+                        'design' => ['label' => 'Design',   'icon' => 'bi-pencil-square', 'fixed' => true],
+                        'print'  => ['label' => 'Printing', 'icon' => 'bi-printer',       'fixed' => false],
+                        'sew'    => ['label' => 'Sewing',   'icon' => 'bi-scissors',      'fixed' => false],
+                    ] as $stage => $info)
+                        <div class="form-check">
+                            @if($info['fixed'])
+                                {{-- Design is always included; render a visible but disabled checkbox
+                                     and a hidden input so it's always submitted --}}
+                                <input class="form-check-input" type="checkbox"
+                                       id="pipeline_{{ $stage }}" disabled checked>
+                                <input type="hidden" name="pipeline[]" value="{{ $stage }}">
+                            @else
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="pipeline[]"
+                                       id="pipeline_{{ $stage }}"
+                                       value="{{ $stage }}"
+                                       {{ in_array($stage, (array) $activePipeline) ? 'checked' : '' }}>
+                            @endif
+                            <label class="form-check-label" for="pipeline_{{ $stage }}">
+                                <i class="bi {{ $info['icon'] }} me-1"></i>{{ $info['label'] }}
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                @error('pipeline')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
+                <div class="text-muted small mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Design is always required. Uncheck Printing or Sewing if this order skips those stages.
+                </div>
+            </div>
+
             <div class="col-6 col-md-3">
                 <label for="order_date" class="form-label fw-semibold">
                     Order Date <span class="text-danger">*</span>

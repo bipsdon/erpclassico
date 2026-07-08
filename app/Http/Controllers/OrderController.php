@@ -117,6 +117,7 @@ class OrderController extends Controller
                     'details', 'notes',
                 ]),
                 'stage'      => 'design',
+                'pipeline'   => $request->input('pipeline', ['design', 'print', 'sew']),
                 'status'     => 'pending',
                 'created_by' => auth()->id(),
             ]);
@@ -174,7 +175,7 @@ class OrderController extends Controller
             $order->update($request->only([
                 'customer_name', 'customer_phone', 'whatsapp_order_id', 'quantity', 'product_type',
                 'order_date', 'delivery_date', 'priority',
-                'stage', 'status', 'details', 'notes',
+                'stage', 'pipeline', 'status', 'details', 'notes',
             ]));
 
             $this->syncPlayers($order, $request->input('players', []));
@@ -223,6 +224,7 @@ class OrderController extends Controller
                 'details'           => $order->details,
                 'notes'             => $order->notes,
                 'stage'             => 'design',
+                'pipeline'          => $order->effectivePipeline(),
                 'status'            => 'pending',
                 'created_by'        => auth()->id(),
             ]);

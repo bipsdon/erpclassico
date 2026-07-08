@@ -24,6 +24,7 @@ class Order extends Model
         'delivery_date',
         'priority',
         'stage',
+        'pipeline',
         'status',
         'details',
         'notes',
@@ -40,6 +41,7 @@ class Order extends Model
             'order_date'    => 'date',
             'delivery_date' => 'date',
             'quantity'      => 'integer',
+            'pipeline'      => 'array',
         ];
     }
 
@@ -184,6 +186,39 @@ class Order extends Model
     }
 
     // ──────────────────────────────────────────────
+    // Pipeline helpers
+    // ──────────────────────────────────────────────
+
+    /**
+     * The ordered list of stages this order goes through.
+     * Falls back to the full pipeline if the column is null (legacy rows).
+     *
+     * @return string[]
+     */
+    public function effectivePipeline(): array
+    {
+        return $this->pipeline ?? ['design', 'print', 'sew'];
+    }
+
+    /**
+     * The stage that comes after $current in this order's pipeline.
+     * Returns 'ready' when $current is the last production stage,
+     * or null if $current is not in the pipeline at all.
+     */
+    public function nextStage(string $current): ?string
+    {
+        $stages = $this->effectivePipeline();
+        $index  = array_search($current, $stages, true);
+
+        if ($index === false) {
+            return null;
+        }
+
+        // If there is a next stage in the pipeline, return it; otherwise 'ready'.
+        return $stages[$index + 1] ?? 'ready';
+    }
+
+    // ──────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────
 
@@ -193,6 +228,10 @@ class Order extends Model
         return $this->productionSchedules
             ->firstWhere('department', $department);
     }
+
+    // ──────────────────────────────────────────────
+    // Booted / lifecycle hooks
+    // ──────────────────────────────────────────────
 
     /**
      * Auto-generate order number: ORD-YYYYMM-XXXX

@@ -40,6 +40,9 @@ class StoreOrderRequest extends FormRequest
             'details'        => ['nullable', 'string'],
             'notes'          => ['nullable', 'string', 'max:2000'],
 
+            'pipeline'       => ['required', 'array', 'min:1'],
+            'pipeline.*'     => ['required', 'string', 'in:design,print,sew'],
+
             'players'                  => ['nullable', 'array'],
             'players.*.player_name'    => ['required_with:players', 'string', 'max:100'],
             'players.*.jersey_number'  => ['required_with:players', 'string', 'max:10'],
@@ -61,7 +64,19 @@ class StoreOrderRequest extends FormRequest
             'delivery_date.after_or_equal' => 'Delivery date must be on or after the order date.',
             'attachments.*.mimes'          => 'Only PDF, JPG, PNG, AI, EPS, and ZIP files are allowed.',
             'attachments.*.max'            => 'Each file must be under 20 MB.',
+            'pipeline.required'            => 'At least one production stage must be selected.',
+            'pipeline.min'                 => 'At least one production stage must be selected.',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($v) {
+            $pipeline = $this->input('pipeline', []);
+            if (is_array($pipeline) && count($pipeline) > 0 && ($pipeline[0] ?? null) !== 'design') {
+                $v->errors()->add('pipeline', 'Design must always be the first stage.');
+            }
+        });
     }
 
     /**

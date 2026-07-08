@@ -61,13 +61,11 @@ class ProductionController extends Controller
             return back()->with('error', 'This order is not currently in the ' . ucfirst($department) . ' stage.');
         }
 
-        $pipeline = ['design' => 'print', 'print' => 'sew', 'sew' => 'ready'];
+        $nextStage = $order->nextStage($department);
 
-        if (! array_key_exists($department, $pipeline)) {
-            return back()->with('error', 'Invalid department.');
+        if ($nextStage === null) {
+            return back()->with('error', 'Invalid department for this order\'s pipeline.');
         }
-
-        $nextStage = $pipeline[$department];
 
         // Fix #2: Keep the DB transaction lean — only mutations that must be atomic.
         // rebuildSchedules runs AFTER commit so a rebuild failure can't roll back

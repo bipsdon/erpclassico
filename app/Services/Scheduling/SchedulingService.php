@@ -138,6 +138,11 @@ class SchedulingService
             return;
         }
 
+        // Skip if this department is not in the order's own pipeline.
+        if (! in_array($dept, $order->effectivePipeline(), true)) {
+            return;
+        }
+
         $existing = $order->productionSchedules->firstWhere('department', $dept);
 
         if ($existing && $existing->completed_at !== null) {

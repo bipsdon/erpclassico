@@ -236,6 +236,7 @@
                 <tbody>
                     @foreach($completedSchedules as $i => $schedule)
                         @php $order = $schedule->order; @endphp
+                        @if(! $order) @continue @endif
                         <tr class="{{ $order->is_late ? 'table-danger' : '' }}">
 
                             <td class="ps-3 text-muted" style="font-size:.78rem">

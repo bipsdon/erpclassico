@@ -36,6 +36,9 @@ class UpdateOrderRequest extends FormRequest
             'details'        => ['nullable', 'string'],
             'notes'          => ['nullable', 'string', 'max:2000'],
 
+            'pipeline'       => ['required', 'array', 'min:1'],
+            'pipeline.*'     => ['required', 'string', 'in:design,print,sew'],
+
             'players'                  => ['nullable', 'array'],
             'players.*.id'             => ['nullable', 'integer'],
             'players.*.player_name'    => ['required_with:players', 'string', 'max:100'],
