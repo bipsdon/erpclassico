@@ -156,10 +156,11 @@
             <span class="text-muted fw-normal" style="font-size:.8rem">— {{ now()->format('l, d F Y') }}</span>
         </div>
         @include('partials.queue-table', [
-            'queue'            => $queue,
-            'title'            => 'Sewing Queue',
-            'icon'             => 'bi-scissors',
-            'showCompletedBtn' => true,
+            'queue'               => $queue,
+            'title'               => 'Sewing Queue',
+            'icon'                => 'bi-scissors',
+            'showCompletedBtn'    => true,
+            'showWhatsappPrimary' => true,
         ])
 
         {{-- ── Coming Tomorrow ──────────────────────────────────── --}}
@@ -172,10 +173,11 @@
                 </span>
             </div>
             @include('partials.queue-table', [
-                'queue'            => $tomorrowQueue,
-                'title'            => 'Tomorrow\'s Sewing Queue',
-                'icon'             => 'bi-scissors',
-                'showCompletedBtn' => false,
+                'queue'               => $tomorrowQueue,
+                'title'               => 'Tomorrow\'s Sewing Queue',
+                'icon'                => 'bi-scissors',
+                'showCompletedBtn'    => false,
+                'showWhatsappPrimary' => true,
             ])
         @endif
     </div>
@@ -198,7 +200,13 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2
                             {{ $order->priority === 'critical' ? 'list-group-item-danger' : 'list-group-item-warning' }}">
                             <div>
-                                <div class="fw-semibold" style="font-size:.875rem">{{ $order->orderNumber }}</div>
+                                <div class="fw-semibold" style="font-size:.875rem">
+                                    @if($order->whatsappOrderId)
+                                        <i class="bi bi-whatsapp text-success me-1"></i>{{ $order->whatsappOrderId }}
+                                    @else
+                                        {{ $order->orderNumber }}
+                                    @endif
+                                </div>
                                 <div class="text-muted" style="font-size:.75rem">
                                     {{ $order->customerName }} · {{ $order->productTypeLabel }} · {{ number_format($order->quantity) }} units
                                     <span class="ms-1 badge bg-light text-secondary border" style="font-size:.65rem">{{ $order->dayPercent() }}% of day</span>

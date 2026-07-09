@@ -11,6 +11,7 @@
     $title            ??= $queue->departmentLabel() . ' Queue';
     $icon             ??= 'bi-list-task';
     $showCompletedBtn ??= false;
+    $showWhatsappPrimary ??= false;
     $health           = $queue->healthSummary();
     $loadPct          = $queue->loadPercent();
 @endphp
@@ -130,19 +131,32 @@
                             <tr class="{{ $order->isLate ? 'table-danger' : '' }}">
                                 <td class="ps-3 text-muted" style="font-size:.8rem" data-val="{{ $i + 1 }}">{{ $i + 1 }}</td>
 
-                                <td data-val="{{ $order->orderNumber }}">
+                                <td data-val="{{ $order->whatsappOrderId ?? $order->orderNumber }}">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="health-dot bg-{{ $order->healthBadge() }}"></span>
                                         <div>
                                             <a href="{{ route('orders.show', $order->orderId) }}"
                                                class="fw-semibold text-decoration-none text-dark"
                                                style="font-size:.875rem">
-                                                {{ $order->orderNumber }}
+                                                @if($showWhatsappPrimary)
+                                                    @if($order->whatsappOrderId)
+                                                        <i class="bi bi-whatsapp text-success me-1"></i>{{ $order->whatsappOrderId }}
+                                                    @else
+                                                        <span class="text-muted fst-italic" style="font-weight:400">No WA ID</span>
+                                                    @endif
+                                                @else
+                                                    {{ $order->orderNumber }}
+                                                @endif
                                             </a>
                                             @if($order->isOvertime)
                                                 <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">OT</span>
                                             @endif
-                                            @if($order->whatsappOrderId)
+                                            @if($showWhatsappPrimary)
+                                                {{-- Show system number small beneath for reference --}}
+                                                <div class="text-muted mt-1" style="font-size:.68rem">
+                                                    {{ $order->orderNumber }}
+                                                </div>
+                                            @elseif($order->whatsappOrderId)
                                                 <div class="text-muted mt-1" style="font-size:.72rem">
                                                     <i class="bi bi-whatsapp text-success me-1"></i>{{ $order->whatsappOrderId }}
                                                 </div>
