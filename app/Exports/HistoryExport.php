@@ -29,7 +29,10 @@ class HistoryExport implements
 
     public function collection(): Collection
     {
-        return $this->schedules->map(function ($schedule, $index) {
+        return $this->schedules
+            ->filter(fn ($schedule) => $schedule->order !== null)
+            ->values()
+            ->map(function ($schedule, $index) {
             $order = $schedule->order;
 
             return [

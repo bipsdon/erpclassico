@@ -345,7 +345,7 @@
                 <strong>{{ number_format($stats['total_units']) }}</strong> total units
             </span>
             <div class="d-flex align-items-center gap-3">
-                {{ $completedSchedules->links() }}
+                {{ $completedSchedules->links('pagination::bootstrap-5') }}
                 <a href="{{ route('history.export-xlsx', ['department' => $department]) }}?{{ http_build_query(request()->only('period','from','to')) }}"
                    class="btn btn-sm btn-outline-success flex-shrink-0">
                     <i class="bi bi-download me-1"></i>Download XLSX
