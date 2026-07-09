@@ -44,12 +44,25 @@ class HistoryController extends Controller
         $stats = $this->aggregateStats($department, $from, $to);
 
         // Chart data — daily completion counts (for the full range, not just the page)
-        $chartData = $this->buildQuery($department, $from, $to)
-            ->select(
+        // When viewing all departments, deduplicate by order so units aren't triple-counted.
+        $chartQuery = $this->buildQuery($department, $from, $to);
+
+        if ($department === 'all') {
+            $chartQuery->join('orders', 'production_schedules.order_id', '=', 'orders.id')
+                ->select(
+                    DB::raw("DATE(completed_at) as day"),
+                    DB::raw('COUNT(DISTINCT production_schedules.order_id) as cnt'),
+                    DB::raw('SUM(DISTINCT orders.quantity) as units')
+                );
+        } else {
+            $chartQuery->select(
                 DB::raw("DATE(completed_at) as day"),
                 DB::raw('COUNT(*) as cnt'),
                 DB::raw('SUM(quantity_scheduled) as units')
-            )
+            );
+        }
+
+        $chartData = $chartQuery
             ->groupBy('day')
             ->orderBy('day')
             ->get()
@@ -120,16 +133,31 @@ class HistoryController extends Controller
     {
         $base = $this->buildQuery($department, $from, $to);
 
-        $totals = (clone $base)
-            ->selectRaw('COUNT(*) as total, SUM(quantity_scheduled) as units')
-            ->first();
+        if ($department === 'all') {
+            // When viewing all departments, an order passes through up to 3 stages,
+            // each producing a completed production_schedule row.
+            // Count jobs and units per unique order to avoid triple-counting.
+            $totals = (clone $base)
+                ->join('orders', 'production_schedules.order_id', '=', 'orders.id')
+                ->selectRaw('COUNT(DISTINCT production_schedules.order_id) as total, SUM(DISTINCT orders.quantity) as units')
+                ->first();
 
-        // "Late" = completed after the order's delivery_date
-        // We join orders to check delivery_date vs completed_at
-        $lateCount = (clone $base)
-            ->join('orders', 'production_schedules.order_id', '=', 'orders.id')
-            ->whereColumn('production_schedules.completed_at', '>', 'orders.delivery_date')
-            ->count();
+            $lateCount = (clone $base)
+                ->join('orders', 'production_schedules.order_id', '=', 'orders.id')
+                ->whereColumn('production_schedules.completed_at', '>', 'orders.delivery_date')
+                ->distinct('production_schedules.order_id')
+                ->count('production_schedules.order_id');
+        } else {
+            // Per-department view: one row per order per department, no dedup needed.
+            $totals = (clone $base)
+                ->selectRaw('COUNT(*) as total, SUM(quantity_scheduled) as units')
+                ->first();
+
+            $lateCount = (clone $base)
+                ->join('orders', 'production_schedules.order_id', '=', 'orders.id')
+                ->whereColumn('production_schedules.completed_at', '>', 'orders.delivery_date')
+                ->count();
+        }
 
         $total = (int) ($totals->total ?? 0);
         $units = (int) ($totals->units ?? 0);
