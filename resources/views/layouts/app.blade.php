@@ -243,6 +243,14 @@
 
             <li><span class="nav-section">Production</span></li>
 
+            @if(auth()->user()->isPrintingManager() || auth()->user()->isSewingManager())
+                <li class="nav-item">
+                    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+                        <i class="bi bi-card-list"></i> All Orders
+                    </a>
+                </li>
+            @endif
+
             @if(auth()->user()->isPipelineManager() || auth()->user()->isDesigner())
                 <li class="nav-item">
                     <a href="{{ route('dashboard.designer') }}" class="nav-link {{ request()->routeIs('dashboard.designer') ? 'active' : '' }}">
