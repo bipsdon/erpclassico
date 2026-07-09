@@ -233,7 +233,11 @@
                                 {{ $order->delivery_date->format('d M Y') }}
                             </div>
                             @if($order->stage === 'delivered')
-                                <span class="days-chip bg-success text-white">Delivered</span>
+                                @if($order->was_delivered_late)
+                                    <span class="days-chip bg-danger text-white">Delivered {{ $order->days_delivered_late }}d late</span>
+                                @else
+                                    <span class="days-chip bg-success text-white">Delivered on time</span>
+                                @endif
                             @elseif($order->stage === 'ready')
                                 <span class="days-chip bg-info text-white">Ready</span>
                             @elseif($order->days_remaining < 0)

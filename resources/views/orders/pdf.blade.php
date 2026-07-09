@@ -132,16 +132,18 @@
             <td class="label">Order Date</td>
             <td class="value">{{ $order->order_date->format('d M Y') }}</td>
             <td class="label">Delivery Date</td>
-            <td class="value {{ $order->is_late ? 'late' : '' }}">
+            <td class="value {{ $order->was_delivered_late ? 'late' : '' }}">
                 {{ $order->delivery_date->format('d M Y') }}
                 @if($order->stage === 'delivered')
-                    (Delivered)
+                    @if($order->was_delivered_late)
+                        (Delivered {{ $order->days_delivered_late }} day(s) late)
+                    @else
+                        (Delivered on time)
+                    @endif
                 @elseif($order->is_late)
                     ({{ abs($order->days_remaining) }} day(s) late)
                 @elseif($order->days_remaining === 0)
                     (Due today)
-                @elseif($order->days_remaining < 0)
-                    (Delivered)
                 @else
                     ({{ $order->days_remaining }} day(s))
                 @endif

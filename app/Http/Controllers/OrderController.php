@@ -31,7 +31,7 @@ class OrderController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Order::with('creator')
+        $query = Order::with('creator', 'stageLogs')
             ->withCount('players');
 
         // Filter by stage

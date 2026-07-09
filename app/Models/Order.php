@@ -110,6 +110,43 @@ class Order extends Model
     }
 
     /**
+     * The timestamp when the order was actually delivered (stage set to 'delivered').
+     * Returns null if not yet delivered.
+     */
+    public function getDeliveredAtAttribute(): ?\Illuminate\Support\Carbon
+    {
+        $log = $this->stageLogs->first(fn ($l) => $l->to_stage === 'delivered');
+
+        return $log?->created_at;
+    }
+
+    /**
+     * True when the order was delivered but after its promised delivery_date.
+     */
+    public function getWasDeliveredLateAttribute(): bool
+    {
+        if ($this->stage !== 'delivered' || ! $this->delivered_at) {
+            return false;
+        }
+
+        return $this->delivered_at->copy()->startOfDay()
+            ->gt($this->delivery_date->copy()->startOfDay());
+    }
+
+    /**
+     * How many days late the delivery was (0 if on time or not yet delivered).
+     */
+    public function getDaysDeliveredLateAttribute(): int
+    {
+        if (! $this->was_delivered_late) {
+            return 0;
+        }
+
+        return (int) $this->delivery_date->copy()->startOfDay()
+            ->diffInDays($this->delivered_at->copy()->startOfDay());
+    }
+
+    /**
      * Days remaining until delivery (negative = overdue).
      */
     public function getDaysRemainingAttribute(): int
