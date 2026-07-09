@@ -63,7 +63,7 @@ class Order extends Model
      */
     public function getIsLateAttribute(): bool
     {
-        return $this->delivery_date->startOfDay()->lt(now()->startOfDay())
+        return $this->delivery_date->copy()->startOfDay()->lt(now()->startOfDay())
             && $this->stage !== 'delivered';
     }
 
