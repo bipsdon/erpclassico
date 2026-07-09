@@ -134,10 +134,14 @@
             <td class="label">Delivery Date</td>
             <td class="value {{ $order->is_late ? 'late' : '' }}">
                 {{ $order->delivery_date->format('d M Y') }}
-                @if($order->is_late)
+                @if($order->stage === 'delivered')
+                    (Delivered)
+                @elseif($order->is_late)
                     ({{ abs($order->days_remaining) }} day(s) late)
                 @elseif($order->days_remaining === 0)
                     (Due today)
+                @elseif($order->days_remaining < 0)
+                    (Delivered)
                 @else
                     ({{ $order->days_remaining }} day(s))
                 @endif

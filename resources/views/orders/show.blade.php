@@ -116,16 +116,17 @@
                         <div class="fw-semibold {{ $order->is_late ? 'text-danger' : '' }}">
                             {{ $order->delivery_date->format('d M Y') }}
                         </div>
-                        <span class="days-chip mt-1
-                            {{ $order->days_remaining < 0 ? 'bg-danger text-white' : ($order->days_remaining <= 1 ? 'bg-warning text-dark' : 'bg-light border text-secondary') }}">
-                            @if($order->days_remaining < 0)
-                                {{ abs($order->days_remaining) }} day(s) late
-                            @elseif($order->days_remaining === 0)
-                                Due today
-                            @else
-                                {{ $order->days_remaining }} day(s) remaining
-                            @endif
-                        </span>
+                        @if($order->stage === 'delivered')
+                            <span class="days-chip mt-1 bg-success text-white">Delivered</span>
+                        @elseif($order->stage === 'ready')
+                            <span class="days-chip mt-1 bg-info text-white">Ready</span>
+                        @elseif($order->days_remaining < 0)
+                            <span class="days-chip mt-1 bg-danger text-white">{{ abs($order->days_remaining) }} day(s) late</span>
+                        @elseif($order->days_remaining === 0)
+                            <span class="days-chip mt-1 bg-warning text-dark">Due today</span>
+                        @else
+                            <span class="days-chip mt-1 bg-light border text-secondary">{{ $order->days_remaining }} day(s) remaining</span>
+                        @endif
                     </div>
 
                 </div>

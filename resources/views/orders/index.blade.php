@@ -232,16 +232,17 @@
                             <div style="font-size:.8rem">
                                 {{ $order->delivery_date->format('d M Y') }}
                             </div>
-                            <span class="days-chip
-                                {{ $order->days_remaining < 0 ? 'bg-danger text-white' : ($order->days_remaining <= 1 ? 'bg-warning text-dark' : 'bg-light border text-secondary') }}">
-                                @if($order->days_remaining < 0)
-                                    {{ abs($order->days_remaining) }}d late
-                                @elseif($order->days_remaining === 0)
-                                    Today
-                                @else
-                                    {{ $order->days_remaining }}d
-                                @endif
-                            </span>
+                            @if($order->stage === 'delivered')
+                                <span class="days-chip bg-success text-white">Delivered</span>
+                            @elseif($order->stage === 'ready')
+                                <span class="days-chip bg-info text-white">Ready</span>
+                            @elseif($order->days_remaining < 0)
+                                <span class="days-chip bg-danger text-white">{{ abs($order->days_remaining) }}d late</span>
+                            @elseif($order->days_remaining === 0)
+                                <span class="days-chip bg-warning text-dark">Today</span>
+                            @else
+                                <span class="days-chip bg-light border text-secondary">{{ $order->days_remaining }}d</span>
+                            @endif
                         </td>
 
                         <td class="text-center">
