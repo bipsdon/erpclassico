@@ -43,7 +43,12 @@
                         {{ $order->customer_name }}
                     </a>
                     <div class="text-muted text-truncate" style="font-size:.75rem">
-                        {{ $order->order_number }} &middot; {{ number_format($order->quantity) }} {{ $order->product_type_label }}
+                        @if($order->whatsapp_order_id)
+                            <i class="bi bi-whatsapp text-success me-1"></i>{{ $order->whatsapp_order_id }}
+                        @else
+                            {{ $order->order_number }}
+                        @endif
+                        &middot; {{ number_format($order->quantity) }} {{ $order->product_type_label }}
                     </div>
                 </div>
 

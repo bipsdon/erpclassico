@@ -16,7 +16,7 @@
     $loadPct          = $queue->loadPercent();
 @endphp
 
-<div class="card shadow-sm border-0 h-100">
+<div class="card shadow-sm border-0">
     {{-- Card header --}}
     <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
         <div class="d-flex align-items-center gap-2">
