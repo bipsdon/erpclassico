@@ -275,7 +275,7 @@
                                         </a>
                                         <form method="POST"
                                               action="{{ route('orders.destroy', $order) }}"
-                                              onsubmit="return confirm('Delete order {{ $order->order_number }}? This cannot be undone.')">
+                                              onsubmit="return confirm('Delete order {{ $order->whatsapp_order_id ?? $order->order_number }}? This cannot be undone.')">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn btn-outline-danger" title="Delete">

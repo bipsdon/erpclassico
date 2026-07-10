@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Edit ' . $order->order_number)
+@section('title', 'Edit ' . ($order->whatsapp_order_id ?? $order->order_number))
 @section('page-title')
-    <i class="bi bi-pencil me-2 text-primary"></i>Edit {{ $order->order_number }}
+    <i class="bi bi-pencil me-2 text-primary"></i>Edit {{ $order->whatsapp_order_id ?? $order->order_number }}
 @endsection
 
 @push('styles')
@@ -15,7 +15,10 @@
     <a href="{{ route('orders.show', $order) }}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i>Back to Order
     </a>
-    <span class="badge bg-secondary ms-2">{{ $order->order_number }}</span>
+    <span class="badge bg-secondary ms-2">{{ $order->whatsapp_order_id ?? $order->order_number }}</span>
+    @if($order->whatsapp_order_id)
+        <span class="badge bg-light text-muted border ms-1" style="font-size:.72rem">{{ $order->order_number }}</span>
+    @endif
     <span class="badge bg-{{ $order->priority_badge }}">{{ ucfirst($order->priority) }}</span>
 </div>
 
@@ -95,7 +98,7 @@
     @include('orders._form_scripts')
     <script>
         function confirmDelete() {
-            if (confirm('Permanently delete {{ $order->order_number }}? This cannot be undone.')) {
+            if (confirm('Permanently delete {{ $order->whatsapp_order_id ?? $order->order_number }}? This cannot be undone.')) {
                 document.getElementById('delete-order-form').submit();
             }
         }

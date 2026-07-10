@@ -114,7 +114,12 @@
                     <tbody>
                         @foreach($plan->lateOrders() as $order)
                             <tr>
-                                <td class="ps-3 fw-semibold">{{ $order->orderNumber }}</td>
+                                <td class="ps-3">
+                                    <div class="fw-semibold">{{ $order->whatsappOrderId ?? $order->orderNumber }}</div>
+                                    @if($order->whatsappOrderId)
+                                        <div class="text-muted" style="font-size:.7rem">{{ $order->orderNumber }}</div>
+                                    @endif
+                                </td>
                                 <td>{{ $order->customerName }}</td>
                                 <td class="text-center">
                                     <span class="badge bg-light text-secondary border" style="font-size:.72rem">
@@ -254,9 +259,14 @@
                                     <td class="ps-3">
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="health-dot bg-danger"></span>
-                                            <a href="{{ route('orders.show', $order->orderId) }}" class="fw-semibold text-decoration-none text-dark">
-                                                {{ $order->orderNumber }}
-                                            </a>
+                                            <div>
+                                                <a href="{{ route('orders.show', $order->orderId) }}" class="fw-semibold text-decoration-none text-dark">
+                                                    {{ $order->whatsappOrderId ?? $order->orderNumber }}
+                                                </a>
+                                                @if($order->whatsappOrderId)
+                                                    <div class="text-muted" style="font-size:.7rem">{{ $order->orderNumber }}</div>
+                                                @endif
+                                            </div>
                                         </div>
                                     </td>
                                     <td>{{ $order->customerName }}</td>

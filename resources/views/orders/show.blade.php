@@ -28,7 +28,7 @@
         @if($order->stage === 'ready')
             <form method="POST"
                   action="{{ route('production.deliver', $order) }}"
-                  onsubmit="return confirm('Mark {{ $order->order_number }} as delivered to the customer?')">
+                  onsubmit="return confirm('Mark {{ $order->whatsapp_order_id ?? $order->order_number }} as delivered to the customer?')">
                 @csrf @method('PATCH')
                 <button class="btn btn-sm btn-success">
                     <i class="bi bi-truck me-1"></i>Mark as Delivered
@@ -48,7 +48,7 @@
         </form>
         <form method="POST"
               action="{{ route('orders.destroy', $order) }}"
-              onsubmit="return confirm('Delete {{ $order->order_number }}?')">
+              onsubmit="return confirm('Delete {{ $order->whatsapp_order_id ?? $order->order_number }}?')">
             @csrf @method('DELETE')
             <button class="btn btn-sm btn-outline-danger">
                 <i class="bi bi-trash me-1"></i>Delete

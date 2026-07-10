@@ -265,11 +265,11 @@
                                 <a href="{{ route('orders.show', $order->id) }}"
                                    class="fw-semibold text-decoration-none text-dark"
                                    style="font-size:.875rem">
-                                    {{ $order->order_number }}
+                                    {{ $order->whatsapp_order_id ?? $order->order_number }}
                                 </a>
                                 @if($order->whatsapp_order_id)
                                     <div class="text-muted" style="font-size:.7rem">
-                                        <i class="bi bi-whatsapp text-success me-1"></i>{{ $order->whatsapp_order_id }}
+                                        {{ $order->order_number }}
                                     </div>
                                 @endif
                             </td>

@@ -256,8 +256,10 @@ class OrderController extends Controller
 
         SchedulingService::clearScheduleCache();
 
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
         return redirect()->route('orders.index')
-            ->with('success', "Order {$order->order_number} duplicated successfully. New order created and placed in Design queue.");
+            ->with('success', "Order {$ref} duplicated successfully. New order created and placed in Design queue.");
     }
 
     // ──────────────────────────────────────────────
@@ -277,8 +279,10 @@ class OrderController extends Controller
 
         SchedulingService::clearScheduleCache();
 
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
         return redirect()->route('orders.index')
-            ->with('success', "Order {$order->order_number} deleted.");
+            ->with('success', "Order {$ref} deleted.");
     }
 
     // ──────────────────────────────────────────────
@@ -292,16 +296,20 @@ class OrderController extends Controller
         $pdf = Pdf::loadView('orders.pdf', compact('order'))
             ->setPaper('a4', 'portrait');
 
-        return $pdf->download("{$order->order_number}.pdf");
+        $filename = ($order->whatsapp_order_id ?? $order->order_number) . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function exportXlsx(Order $order): BinaryFileResponse
     {
         $order->load('players');
 
+        $filename = ($order->whatsapp_order_id ?? $order->order_number) . '-players.xlsx';
+
         return Excel::download(
             new OrderPlayersExport($order),
-            "{$order->order_number}-players.xlsx"
+            $filename
         );
     }
 

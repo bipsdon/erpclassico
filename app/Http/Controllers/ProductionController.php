@@ -104,8 +104,10 @@ class ProductionController extends Controller
         SchedulingService::clearScheduleCache();
         $this->scheduler->rebuildSchedules();
 
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
         return back()->with('success',
-            "Order {$order->order_number} marked complete in " . ucfirst($department) . ". "
+            "Order {$ref} marked complete in " . ucfirst($department) . ". "
             . "Advanced to: " . ucfirst($nextStage) . "."
         );
     }
@@ -150,7 +152,7 @@ class ProductionController extends Controller
             ]);
         });
 
-        return back()->with('success', "Order {$order->order_number} marked as in progress.");
+        return back()->with('success', "Order " . ($order->whatsapp_order_id ?? $order->order_number) . " marked as in progress.");
     }
 
     // ──────────────────────────────────────────────
@@ -183,8 +185,10 @@ class ProductionController extends Controller
             ]);
         });
 
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
         return redirect()->route('orders.show', $order)
-            ->with('success', "Order {$order->order_number} marked as delivered.");
+            ->with('success', "Order {$ref} marked as delivered.");
     }
 
     // ──────────────────────────────────────────────
@@ -203,22 +207,14 @@ class ProductionController extends Controller
         $fromLabel = $stageLabels[$fromStage] ?? ucfirst($fromStage);
         $nextLabel = $stageLabels[$nextStage] ?? ucfirst($nextStage);
 
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
         if ($nextStage === 'ready') {
-            // Fix #3: target 'pipeline_manager' specifically — not a null broadcast
-            // which goes to everyone. The enum on pipeline_notifications doesn't
-            // have pipeline_manager as a target, so we keep null but add a comment
-            // explaining that pipeline managers see ALL notifications (including
-            // targeted ones), so this effectively reaches only them when departments
-            // ignore broadcasts. A cleaner fix would add 'pipeline_manager' to the
-            // target_department enum — done via migration below.
-            // For now: pipeline_manager role is already excluded from department
-            // notifications, so null (broadcast) reaches them plus their own inbox.
-            // We suppress this from department inboxes in the controller query.
             PipelineNotification::create([
                 'sent_by'           => auth()->id(),
                 'target_department' => 'pipeline_manager',
-                'subject'           => "✅ Order {$order->order_number} is Ready for Delivery",
-                'message'           => "Order {$order->order_number} for {$order->customer_name} has completed all "
+                'subject'           => "✅ Order {$ref} is Ready for Delivery",
+                'message'           => "Order {$ref} for {$order->customer_name} has completed all "
                                      . "production stages and is ready for delivery.\n\n"
                                      . "Quantity: {$order->quantity} × {$order->product_type_label}\n"
                                      . "Delivery date: {$order->delivery_date->format('d M Y')}\n"
@@ -236,8 +232,8 @@ class ProductionController extends Controller
         PipelineNotification::create([
             'sent_by'           => auth()->id(),
             'target_department' => $targetRole,
-            'subject'           => "📦 New order arrived: {$order->order_number} — {$nextLabel} stage",
-            'message'           => "{$fromLabel} stage completed for order {$order->order_number}.\n\n"
+            'subject'           => "📦 New order arrived: {$ref} — {$nextLabel} stage",
+            'message'           => "{$fromLabel} stage completed for order {$ref}.\n\n"
                                  . "Customer: {$order->customer_name}\n"
                                  . "Product: {$order->quantity} × {$order->product_type_label}\n"
                                  . "Delivery date: {$order->delivery_date->format('d M Y')}\n"

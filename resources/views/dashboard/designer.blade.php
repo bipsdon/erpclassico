@@ -120,7 +120,12 @@
                     @foreach($criticalDesign as $order)
                         <li class="list-group-item list-group-item-danger d-flex justify-content-between align-items-center px-3 py-2">
                             <div>
-                                <div class="fw-semibold" style="font-size:.875rem">{{ $order->orderNumber }}</div>
+                                <div class="fw-semibold" style="font-size:.875rem">
+                                    {{ $order->whatsappOrderId ?? $order->orderNumber }}
+                                </div>
+                                @if($order->whatsappOrderId)
+                                    <div class="text-muted" style="font-size:.72rem">{{ $order->orderNumber }}</div>
+                                @endif
                                 <div class="text-muted" style="font-size:.75rem">
                                     {{ $order->customerName }} · {{ $order->productTypeLabel }} · {{ number_format($order->quantity) }} units
                                 </div>

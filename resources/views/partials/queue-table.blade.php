@@ -11,7 +11,7 @@
     $title            ??= $queue->departmentLabel() . ' Queue';
     $icon             ??= 'bi-list-task';
     $showCompletedBtn ??= false;
-    $showWhatsappPrimary ??= false;
+    $showWhatsappPrimary ??= true;
     $health           = $queue->healthSummary();
     $loadPct          = $queue->loadPercent();
 @endphp
@@ -245,7 +245,7 @@
                                             {{-- Done button --}}
                                             <form method="POST"
                                                   action="{{ route('production.complete', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
-                                                  onsubmit="return confirm('Mark {{ $order->orderNumber }} as completed in {{ $queue->departmentLabel() }}?')">
+                                                  onsubmit="return confirm('Mark {{ $order->whatsappOrderId ?? $order->orderNumber }} as completed in {{ $queue->departmentLabel() }}?')">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="btn btn-sm btn-outline-success">

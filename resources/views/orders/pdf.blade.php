@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $order->order_number }}</title>
+    <title>{{ $order->whatsapp_order_id ?? $order->order_number }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
@@ -95,11 +95,11 @@
 
 {{-- ── Header ──────────────────────────────────────────── --}}
 <div class="page-header">
-    <h1>{{ $order->order_number }}</h1>
+    <h1>{{ $order->whatsapp_order_id ?? $order->order_number }}</h1>
     <div class="sub">
         Order Details &nbsp;·&nbsp; Generated {{ now()->format('d M Y, H:i') }}
         @if($order->whatsapp_order_id)
-            &nbsp;·&nbsp; WA: {{ $order->whatsapp_order_id }}
+            &nbsp;·&nbsp; Ref: {{ $order->order_number }}
         @endif
     </div>
 </div>

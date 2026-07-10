@@ -31,7 +31,7 @@ class OrderPlayersExport implements FromCollection, WithHeadings, WithTitle, Wit
 
     public function title(): string
     {
-        return $this->order->order_number;
+        return $this->order->whatsapp_order_id ?? $this->order->order_number;
     }
 
     public function styles(Worksheet $sheet): array
