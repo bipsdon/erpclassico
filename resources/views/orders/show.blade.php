@@ -193,6 +193,10 @@
                     <i class="bi bi-file-text me-2 text-primary"></i>Order Specifications
                 </div>
                 <div class="card-body prose" style="line-height:1.7">
+                    <style>
+                        .prose a { color: #0d6efd; text-decoration: underline; }
+                        .prose a:hover { color: #0a58ca; }
+                    </style>
                     {!! $order->details !!}
                 </div>
             </div>
