@@ -240,6 +240,28 @@ quill.root.addEventListener('paste', async (e) => {
             return;
         }
     }
+
+    // Auto-linkify: if the pasted text is purely a URL, insert it as a link
+    const text = e.clipboardData.getData('text/plain').trim();
+    if (text && /^https?:\/\/\S+$/.test(text)) {
+        e.preventDefault();
+        const range = quill.getSelection(true);
+        const idx   = range ? range.index : quill.getLength();
+        // If there's a selection, replace it; otherwise insert at cursor
+        if (range && range.length > 0) {
+            quill.deleteText(range.index, range.length, Quill.sources.USER);
+        }
+        quill.insertText(idx, text, 'link', text, Quill.sources.USER);
+        quill.setSelection(idx + text.length, 0, Quill.sources.SILENT);
+        // Set target=_blank
+        setTimeout(() => {
+            quill.root.querySelectorAll('a[href="' + CSS.escape(text) + '"]').forEach(a => {
+                a.setAttribute('target', '_blank');
+                a.setAttribute('rel', 'noopener noreferrer');
+            });
+        }, 50);
+        return;
+    }
 });
 
 quill.root.addEventListener('drop', async (e) => {

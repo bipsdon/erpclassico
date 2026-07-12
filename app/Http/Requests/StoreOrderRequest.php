@@ -104,6 +104,28 @@ class StoreOrderRequest extends FormRequest
         // Remove javascript: hrefs
         $clean = preg_replace('/href\s*=\s*["\']?\s*javascript:[^"\'>\s]*/i', 'href="#"', $clean);
 
+        // Ensure <a> tags keep only safe attributes: href, target, rel
+        $clean = preg_replace_callback(
+            '/<a([^>]*)>/i',
+            function (array $m) {
+                $attrs  = $m[1];
+                $safe   = '';
+                // Extract href
+                if (preg_match('/href\s*=\s*["\']([^"\']*)["\']/', $attrs, $hm)) {
+                    $safe .= ' href="' . htmlspecialchars($hm[1], ENT_QUOTES, 'UTF-8') . '"';
+                }
+                // Extract target (only _blank or _self)
+                if (preg_match('/target\s*=\s*["\']([^"\']*)["\']/', $attrs, $tm)) {
+                    $t = in_array($tm[1], ['_blank', '_self', '_parent', '_top']) ? $tm[1] : '_blank';
+                    $safe .= ' target="' . $t . '"';
+                }
+                // Always add rel for _blank links
+                $safe .= ' rel="noopener noreferrer"';
+                return '<a' . $safe . '>';
+            },
+            $clean
+        );
+
         // Strip any src that isn't a relative /storage/... path or https URL
         // (prevents data: URIs / base64 blobs from sneaking back in)
         $clean = preg_replace_callback(

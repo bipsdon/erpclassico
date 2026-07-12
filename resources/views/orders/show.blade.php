@@ -197,7 +197,18 @@
                         .prose a { color: #0d6efd; text-decoration: underline; }
                         .prose a:hover { color: #0a58ca; }
                     </style>
-                    {!! $order->details !!}
+                    @php
+                        // Auto-linkify any bare URLs in the stored HTML that aren't already inside an <a> tag
+                        $details = $order->details;
+                        if ($details) {
+                            $details = preg_replace(
+                                '/(?<!href=["\'])(?<!src=["\'])(https?:\/\/[^\s<>"\']+)/i',
+                                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
+                                $details
+                            );
+                        }
+                    @endphp
+                    {!! $details !!}
                 </div>
             </div>
         @endif
