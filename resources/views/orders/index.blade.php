@@ -92,7 +92,11 @@
 
             @auth
                 @if(auth()->user()->isPipelineManager())
-                    <div class="col-auto ms-auto">
+                    <div class="col-auto ms-auto d-flex gap-2">
+                        <a href="{{ route('orders.export.all-xlsx') }}?{{ http_build_query(request()->only('stage','priority','status','search')) }}"
+                           class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i>Download XLSX
+                        </a>
                         <a href="{{ route('orders.create') }}" class="btn btn-sm btn-success">
                             <i class="bi bi-plus-lg me-1"></i>New Order
                         </a>

@@ -314,6 +314,44 @@ class OrderController extends Controller
     }
 
     // ──────────────────────────────────────────────
+    // Export all orders (pipeline manager only)
+    // ──────────────────────────────────────────────
+
+    public function exportAllXlsx(Request $request): BinaryFileResponse
+    {
+        $this->authorizeManager();
+
+        $query = Order::with('creator')->withCount('players');
+
+        if ($stage = $request->input('stage')) {
+            $query->where('stage', $stage);
+        }
+        if ($priority = $request->input('priority')) {
+            $query->where('priority', $priority);
+        }
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('whatsapp_order_id', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_phone', 'like', "%{$search}%");
+            });
+        }
+
+        $query->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
+              ->orderBy('delivery_date');
+
+        $orders = $query->get();
+
+        $filename = 'orders-' . now()->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(new \App\Exports\OrdersExport($orders), $filename);
+    }
+
+    // ──────────────────────────────────────────────
     // Attachment download
     // ──────────────────────────────────────────────
     public function downloadAttachment(Order $order, OrderAttachment $attachment): mixed

@@ -92,6 +92,11 @@ Route::middleware('auth')->group(function () {
         ->name('history.export-xlsx');
 
     // ─── Orders CRUD ─────────────────────────────────────────
+    Route::get('/orders/export/all-xlsx',
+        [OrderController::class, 'exportAllXlsx'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.export.all-xlsx');
+
     Route::resource('orders', OrderController::class);
 
     // ─── Order duplicate ─────────────────────────────────────
@@ -110,6 +115,16 @@ Route::middleware('auth')->group(function () {
         [OrderController::class, 'exportXlsx'])
         ->middleware('role:pipeline_manager,designer,printing_manager,sewing_manager')
         ->name('orders.export.xlsx');
+
+    Route::get('/orders/export/all-xlsx',
+        [OrderController::class, 'exportAllXlsx'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.export.all-xlsx');
+
+    Route::get('/orders/export/all-xlsx',
+        [OrderController::class, 'exportAllXlsx'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.export.all-xlsx');
 
     // ─── Quill editor image upload ────────────────────────────
     Route::post('/orders/editor-image', [\App\Http\Controllers\OrderImageController::class, 'store'])
