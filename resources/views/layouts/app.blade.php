@@ -243,7 +243,7 @@
 
             <li><span class="nav-section">Production</span></li>
 
-            @if(auth()->user()->isPrintingManager() || auth()->user()->isSewingManager())
+            @if(auth()->user()->isPrintingManager() || auth()->user()->isSewingManager() || auth()->user()->isDesigner())
                 <li class="nav-item">
                     <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
                         <i class="bi bi-card-list"></i> All Orders
