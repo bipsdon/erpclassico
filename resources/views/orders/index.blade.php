@@ -272,6 +272,16 @@
                                 </a>
                                 @auth
                                     @if(auth()->user()->isPipelineManager())
+                                        @if($order->stage === 'ready')
+                                            <form method="POST"
+                                                  action="{{ route('production.deliver', $order) }}"
+                                                  onsubmit="return confirm('Mark {{ $order->whatsapp_order_id ?? $order->order_number }} as delivered?')">
+                                                @csrf @method('PATCH')
+                                                <button class="btn btn-success" title="Mark as Delivered">
+                                                    <i class="bi bi-truck"></i>
+                                                </button>
+                                            </form>
+                                        @endif
                                         <a href="{{ route('orders.edit', $order) }}"
                                            class="btn btn-outline-primary"
                                            title="Edit">

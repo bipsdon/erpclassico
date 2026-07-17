@@ -187,7 +187,7 @@ class ProductionController extends Controller
 
         $ref = $order->whatsapp_order_id ?? $order->order_number;
 
-        return redirect()->route('orders.show', $order)
+        return redirect()->back()
             ->with('success', "Order {$ref} marked as delivered.");
     }
 
