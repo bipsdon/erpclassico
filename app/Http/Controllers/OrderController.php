@@ -79,8 +79,9 @@ class OrderController extends Controller
                 $query->orderBy($col, $sortDir);
             }
         } else {
-            // Default: critical → rush → normal, then earliest delivery first
-            $query->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
+            // Default: delivered last, then critical → rush → normal, then earliest delivery first
+            $query->orderByRaw("CASE stage WHEN 'delivered' THEN 1 ELSE 0 END")
+                  ->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
                   ->orderBy('delivery_date');
         }
 
@@ -341,7 +342,8 @@ class OrderController extends Controller
             });
         }
 
-        $query->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
+        $query->orderByRaw("CASE stage WHEN 'delivered' THEN 1 ELSE 0 END")
+              ->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
               ->orderBy('delivery_date');
 
         $orders = $query->get();
