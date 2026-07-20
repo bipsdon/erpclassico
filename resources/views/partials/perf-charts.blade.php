@@ -44,31 +44,25 @@
 @endphp
 
 {{-- ── Section header + tab switcher ──────────────────────── --}}
-<div class="d-flex align-items-center justify-content-between mb-3 mt-2">
-    <div class="section-title mb-0" style="border:none">
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2 mb-3 pb-2"
+     style="border-bottom:2px solid #dee2e6">
+    <span style="font-size:.875rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#495057">
         <i class="bi bi-graph-up-arrow me-2" style="color:{{ $accentColor }}"></i>
         Performance — Last 30 Days
-    </div>
+    </span>
     @if($perfMine !== null)
-        <ul class="nav nav-pills nav-sm gap-1" id="{{ $uid }}-tabs" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active py-1 px-3" style="font-size:.8rem"
-                        id="{{ $uid }}-dept-tab"
-                        data-scope="dept">
-                    <i class="bi bi-people me-1"></i>Department
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link py-1 px-3" style="font-size:.8rem"
-                        id="{{ $uid }}-mine-tab"
-                        data-scope="mine">
-                    <i class="bi bi-person-fill me-1"></i>My Stats
-                </button>
-            </li>
-        </ul>
+        <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-primary py-1 px-3" style="font-size:.8rem"
+                    id="{{ $uid }}-dept-tab">
+                <i class="bi bi-people me-1"></i>Department
+            </button>
+            <button class="btn btn-sm btn-outline-secondary py-1 px-3" style="font-size:.8rem"
+                    id="{{ $uid }}-mine-tab">
+                <i class="bi bi-person-fill me-1"></i>My Stats
+            </button>
+        </div>
     @endif
 </div>
-<div class="section-title mt-0 mb-4" style="border-bottom:2px solid #dee2e6"></div>
 
 {{-- ── KPI strip ────────────────────────────────────────────── --}}
 <div class="row g-3 mb-4" id="{{ $uid }}-kpis">
@@ -461,9 +455,17 @@
         updatePriority(scope);
         updateHeatmap(scope);
 
-        // Update tab button states
-        document.getElementById(uid + '-dept-tab')?.classList.toggle('active', scope === 'dept');
-        document.getElementById(uid + '-mine-tab')?.classList.toggle('active', scope === 'mine');
+        const deptBtn = document.getElementById(uid + '-dept-tab');
+        const mineBtn = document.getElementById(uid + '-mine-tab');
+        if (deptBtn && mineBtn) {
+            if (scope === 'dept') {
+                deptBtn.className = 'btn btn-sm btn-primary py-1 px-3';
+                mineBtn.className = 'btn btn-sm btn-outline-secondary py-1 px-3';
+            } else {
+                deptBtn.className = 'btn btn-sm btn-outline-secondary py-1 px-3';
+                mineBtn.className = 'btn btn-sm btn-primary py-1 px-3';
+            }
+        }
     }
 
     document.getElementById(uid + '-dept-tab')?.addEventListener('click', () => switchScope('dept'));
