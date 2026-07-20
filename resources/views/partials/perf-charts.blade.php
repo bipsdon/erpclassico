@@ -21,7 +21,7 @@
     ];
 
     // Pre-encode both datasets for JS
-    function encodePerf(array $p, array $pt): array {
+    $encodePerf = function(array $p, array $pt): array {
         return [
             'labels'        => json_encode($p['labels']),
             'units'         => json_encode($p['units']),
@@ -37,10 +37,10 @@
             'productData'   => json_encode(array_values($p['byProduct'])),
             'maxUnit'       => max(array_filter($p['units']) ?: [1]),
         ];
-    }
+    };
 
-    $deptData = encodePerf($perf, $productTypes);
-    $mineData = $perfMine ? encodePerf($perfMine, $productTypes) : null;
+    $deptData = $encodePerf($perf, $productTypes);
+    $mineData = $perfMine ? $encodePerf($perfMine, $productTypes) : null;
 @endphp
 
 {{-- ── Section header + tab switcher ──────────────────────── --}}
