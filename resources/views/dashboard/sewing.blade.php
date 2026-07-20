@@ -234,6 +234,7 @@
 {{-- ── Performance charts ──────────────────────────────────── --}}
 @include('partials.perf-charts', [
     'perf'        => $perf,
+    'perfMine'    => $perfMine,
     'accentColor' => '#7c3aed',
     'accentRgb'   => '124,58,237',
 ])

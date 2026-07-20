@@ -1,83 +1,102 @@
 {{--
     Performance visualisation partial — last 30 days.
-    Requires: $perf (array from controller perfStats())
+    Required: $perf (department-wide), $perfMine (current user only)
     Optional: $accentColor (CSS color string), $accentRgb ('r,g,b')
 --}}
 @php
-    $accentColor  ??= '#0d6efd';
-    $accentRgb    ??= '13,110,253';
+    $accentColor ??= '#0d6efd';
+    $accentRgb   ??= '13,110,253';
+    $perfMine    ??= null;
+    $userName     = auth()->user()->name;
 
-    $totalJobs    = $perf['totalJobs'];
-    $totalUnits   = $perf['totalUnits'];
-    $overtimeDays = $perf['overtimeDays'];
-    $activeDays   = $perf['activeDays'];
-    $avgUnits     = $activeDays > 0 ? round($totalUnits / $activeDays) : 0;
+    // Unique suffix so multiple partials on same page don't clash (not needed here but safe)
+    $uid = uniqid('pc');
 
     $productTypes = \App\Models\CapacityConfig::productTypes();
-    $byProduct    = $perf['byProduct'];
-    $byPriority   = $perf['byPriority'];
-
-    $productLabelsJson = json_encode(array_values(
-        array_map(fn($k) => $productTypes[$k] ?? ucfirst($k), array_keys($byProduct))
-    ));
-    $productDataJson   = json_encode(array_values($byProduct));
-    $labelsJson        = json_encode($perf['labels']);
-    $unitsJson         = json_encode($perf['units']);
-    $overtimeJson      = json_encode($perf['overtime']);
 
     $priorityColors = [
         'critical' => '#dc3545',
         'rush'     => '#ffc107',
         'normal'   => '#6c757d',
     ];
+
+    // Pre-encode both datasets for JS
+    function encodePerf(array $p, array $pt): array {
+        return [
+            'labels'        => json_encode($p['labels']),
+            'units'         => json_encode($p['units']),
+            'overtime'      => json_encode($p['overtime']),
+            'totalJobs'     => $p['totalJobs'],
+            'totalUnits'    => $p['totalUnits'],
+            'overtimeDays'  => $p['overtimeDays'],
+            'activeDays'    => $p['activeDays'],
+            'avgUnits'      => $p['activeDays'] > 0 ? round($p['totalUnits'] / $p['activeDays']) : 0,
+            'byProduct'     => $p['byProduct'],
+            'byPriority'    => $p['byPriority'],
+            'productLabels' => json_encode(array_values(array_map(fn($k) => $pt[$k] ?? ucfirst($k), array_keys($p['byProduct'])))),
+            'productData'   => json_encode(array_values($p['byProduct'])),
+            'maxUnit'       => max(array_filter($p['units']) ?: [1]),
+        ];
+    }
+
+    $deptData = encodePerf($perf, $productTypes);
+    $mineData = $perfMine ? encodePerf($perfMine, $productTypes) : null;
 @endphp
 
-{{-- ── Section header ──────────────────────────────────────── --}}
-<div class="section-title mt-2">
-    <i class="bi bi-graph-up-arrow me-2" style="color:{{ $accentColor }}"></i>
-    Performance — Last 30 Days
+{{-- ── Section header + tab switcher ──────────────────────── --}}
+<div class="d-flex align-items-center justify-content-between mb-3 mt-2">
+    <div class="section-title mb-0" style="border:none">
+        <i class="bi bi-graph-up-arrow me-2" style="color:{{ $accentColor }}"></i>
+        Performance — Last 30 Days
+    </div>
+    @if($perfMine !== null)
+        <ul class="nav nav-pills nav-sm gap-1" id="{{ $uid }}-tabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active py-1 px-3" style="font-size:.8rem"
+                        id="{{ $uid }}-dept-tab"
+                        data-scope="dept">
+                    <i class="bi bi-people me-1"></i>Department
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-1 px-3" style="font-size:.8rem"
+                        id="{{ $uid }}-mine-tab"
+                        data-scope="mine">
+                    <i class="bi bi-person-fill me-1"></i>My Stats
+                </button>
+            </li>
+        </ul>
+    @endif
 </div>
+<div class="section-title mt-0 mb-4" style="border-bottom:2px solid #dee2e6"></div>
 
 {{-- ── KPI strip ────────────────────────────────────────────── --}}
-<div class="row g-3 mb-4">
-    <div class="col-6 col-sm-3">
-        <div class="card border-0 shadow-sm h-100 text-center py-3">
-            <div style="font-size:1.75rem;font-weight:700;color:{{ $accentColor }}">
-                {{ number_format($totalJobs) }}
+<div class="row g-3 mb-4" id="{{ $uid }}-kpis">
+    @foreach([
+        ['key' => 'totalJobs',    'label' => 'Orders Completed',      'color' => $accentColor],
+        ['key' => 'totalUnits',   'label' => 'Units Processed',        'color' => $accentColor],
+        ['key' => 'avgUnits',     'label' => 'Avg Units / Active Day', 'color' => '#198754'],
+        ['key' => 'overtimeDays', 'label' => 'Overtime Days',          'color' => null],
+    ] as $kpi)
+        <div class="col-6 col-sm-3">
+            <div class="card border-0 shadow-sm h-100 text-center py-3">
+                <div class="{{ $uid }}-kpi-val"
+                     data-key="{{ $kpi['key'] }}"
+                     data-dept="{{ $deptData[$kpi['key']] }}"
+                     data-mine="{{ $mineData ? $mineData[$kpi['key']] : $deptData[$kpi['key']] }}"
+                     style="font-size:1.75rem;font-weight:700;color:{{ $kpi['color'] ?? ($deptData['overtimeDays'] > 0 ? '#ffc107' : '#198754') }}">
+                    {{ number_format($deptData[$kpi['key']]) }}
+                </div>
+                <div class="text-muted" style="font-size:.75rem">{{ $kpi['label'] }}</div>
             </div>
-            <div class="text-muted" style="font-size:.75rem">Orders Completed</div>
         </div>
-    </div>
-    <div class="col-6 col-sm-3">
-        <div class="card border-0 shadow-sm h-100 text-center py-3">
-            <div style="font-size:1.75rem;font-weight:700;color:{{ $accentColor }}">
-                {{ number_format($totalUnits) }}
-            </div>
-            <div class="text-muted" style="font-size:.75rem">Units Processed</div>
-        </div>
-    </div>
-    <div class="col-6 col-sm-3">
-        <div class="card border-0 shadow-sm h-100 text-center py-3">
-            <div style="font-size:1.75rem;font-weight:700;color:#198754">
-                {{ number_format($avgUnits) }}
-            </div>
-            <div class="text-muted" style="font-size:.75rem">Avg Units / Active Day</div>
-        </div>
-    </div>
-    <div class="col-6 col-sm-3">
-        <div class="card border-0 shadow-sm h-100 text-center py-3">
-            <div style="font-size:1.75rem;font-weight:700;color:{{ $overtimeDays > 0 ? '#ffc107' : '#198754' }}">
-                {{ $overtimeDays }}
-            </div>
-            <div class="text-muted" style="font-size:.75rem">Overtime Days</div>
-        </div>
-    </div>
+    @endforeach
 </div>
 
 {{-- ── Charts row ───────────────────────────────────────────── --}}
 <div class="row g-4 mb-4">
 
-    {{-- 1. Daily throughput bar chart --}}
+    {{-- Throughput bar chart --}}
     <div class="col-12 col-lg-8">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
@@ -87,35 +106,37 @@
                     </span>
                     <span class="text-muted" style="font-size:.75rem">units completed per day</span>
                 </div>
-                <canvas id="perf-throughput-chart" height="110"></canvas>
+                <canvas id="{{ $uid }}-throughput" height="110"></canvas>
             </div>
         </div>
     </div>
 
-    {{-- 2. Product mix donut --}}
+    {{-- Product mix donut --}}
     <div class="col-12 col-lg-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body d-flex flex-column">
                 <div class="fw-semibold mb-3" style="font-size:.875rem">
                     <i class="bi bi-pie-chart-fill me-2" style="color:{{ $accentColor }}"></i>Product Mix
                 </div>
-                @if(empty($byProduct))
-                    <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted" style="font-size:.85rem">
-                        <div class="text-center">
-                            <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>No completed jobs yet
-                        </div>
-                    </div>
-                @else
-                    <canvas id="perf-product-chart" style="max-height:180px"></canvas>
-                    <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
-                        @foreach($byProduct as $type => $units)
-                            <div class="text-center" style="font-size:.72rem">
-                                <div class="fw-semibold">{{ number_format($units) }}</div>
-                                <div class="text-muted">{{ $productTypes[$type] ?? ucfirst($type) }}</div>
+                <div id="{{ $uid }}-product-wrap" class="flex-grow-1 d-flex flex-column">
+                    @if(empty($deptData['byProduct']))
+                        <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted" style="font-size:.85rem">
+                            <div class="text-center">
+                                <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>No completed jobs yet
                             </div>
-                        @endforeach
-                    </div>
-                @endif
+                        </div>
+                    @else
+                        <canvas id="{{ $uid }}-product" style="max-height:180px"></canvas>
+                        <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center" id="{{ $uid }}-product-labels">
+                            @foreach($deptData['byProduct'] as $type => $units)
+                                <div class="text-center" style="font-size:.72rem">
+                                    <div class="fw-semibold">{{ number_format($units) }}</div>
+                                    <div class="text-muted">{{ $productTypes[$type] ?? ucfirst($type) }}</div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
@@ -125,43 +146,45 @@
 {{-- ── Second row ───────────────────────────────────────────── --}}
 <div class="row g-4 mb-4">
 
-    {{-- 3. Priority breakdown --}}
+    {{-- Priority breakdown --}}
     <div class="col-12 col-md-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="fw-semibold mb-3" style="font-size:.875rem">
                     <i class="bi bi-flag-fill me-2 text-danger"></i>Completed Jobs by Priority
                 </div>
-                @if(empty($byPriority))
-                    <div class="text-center text-muted py-4" style="font-size:.85rem">
-                        <i class="bi bi-inbox d-block fs-2 mb-2 opacity-25"></i>No completed jobs yet
-                    </div>
-                @else
-                    @php $totalPri = array_sum($byPriority); @endphp
-                    @foreach(['critical' => 'Critical', 'rush' => 'Rush', 'normal' => 'Normal'] as $key => $label)
-                        @php
-                            $count = $byPriority[$key] ?? 0;
-                            $pct   = $totalPri > 0 ? round($count / $totalPri * 100) : 0;
-                            $color = $priorityColors[$key];
-                        @endphp
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1" style="font-size:.82rem">
-                                <span class="fw-semibold" style="color:{{ $color }}">{{ $label }}</span>
-                                <span class="text-muted">{{ $count }} jobs &middot; {{ $pct }}%</span>
-                            </div>
-                            <div class="progress" style="height:10px;border-radius:5px;background:#f1f3f5">
-                                <div class="progress-bar"
-                                     style="width:{{ $pct }}%;background:{{ $color }};border-radius:5px;transition:width .6s ease">
+                <div id="{{ $uid }}-priority-bars">
+                    @if(empty($deptData['byPriority']))
+                        <div class="text-center text-muted py-4" style="font-size:.85rem">
+                            <i class="bi bi-inbox d-block fs-2 mb-2 opacity-25"></i>No completed jobs yet
+                        </div>
+                    @else
+                        @php $totalPri = array_sum($deptData['byPriority']); @endphp
+                        @foreach(['critical' => 'Critical', 'rush' => 'Rush', 'normal' => 'Normal'] as $key => $label)
+                            @php
+                                $count = $deptData['byPriority'][$key] ?? 0;
+                                $pct   = $totalPri > 0 ? round($count / $totalPri * 100) : 0;
+                                $color = $priorityColors[$key];
+                            @endphp
+                            <div class="mb-3" data-pri="{{ $key }}">
+                                <div class="d-flex justify-content-between mb-1" style="font-size:.82rem">
+                                    <span class="fw-semibold" style="color:{{ $color }}">{{ $label }}</span>
+                                    <span class="text-muted pri-label">{{ $count }} jobs &middot; {{ $pct }}%</span>
+                                </div>
+                                <div class="progress" style="height:10px;border-radius:5px;background:#f1f3f5">
+                                    <div class="progress-bar pri-bar"
+                                         style="width:{{ $pct }}%;background:{{ $color }};border-radius:5px;transition:width .5s ease">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    @endforeach
-                @endif
+                        @endforeach
+                    @endif
+                </div>
             </div>
         </div>
     </div>
 
-    {{-- 4. Activity heatmap --}}
+    {{-- Activity heatmap --}}
     <div class="col-12 col-md-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
@@ -169,10 +192,8 @@
                     <i class="bi bi-calendar3 me-2 text-warning"></i>Activity Heatmap
                     <span class="text-muted fw-normal" style="font-size:.72rem">— last 30 days</span>
                 </div>
-                @php
-                    $maxU = max(array_filter($perf['units']) ?: [1]);
-                @endphp
-                <div class="d-flex flex-wrap gap-1 align-content-start">
+                <div id="{{ $uid }}-heatmap" class="d-flex flex-wrap gap-1 align-content-start">
+                    @php $maxU = max(array_filter($perf['units']) ?: [1]); @endphp
                     @foreach($perf['labels'] as $i => $label)
                         @php
                             $u  = $perf['units'][$i];
@@ -190,9 +211,11 @@
                             }
                         @endphp
                         <div title="{{ $title }}"
-                             style="width:28px;height:28px;border-radius:4px;background:{{ $bg }};cursor:default"
                              data-bs-toggle="tooltip"
-                             data-bs-title="{{ $title }}">
+                             data-bs-title="{{ $title }}"
+                             data-idx="{{ $i }}"
+                             class="{{ $uid }}-cell"
+                             style="width:28px;height:28px;border-radius:4px;background:{{ $bg }};cursor:default;transition:background .3s">
                         </div>
                     @endforeach
                 </div>
@@ -223,110 +246,237 @@
     Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     Chart.defaults.font.size   = 11;
 
-    const accentRgb = '{{ $accentRgb }}';
-    const labels    = {!! $labelsJson !!};
-    const units     = {!! $unitsJson !!};
-    const overtime  = {!! $overtimeJson !!};
+    const uid        = '{{ $uid }}';
+    const accentRgb  = '{{ $accentRgb }}';
+    const accentColor = '{{ $accentColor }}';
 
-    // ── 1. Throughput bar chart ────────────────────────────────
-    const barColors = units.map((u, i) => {
-        if (u === 0)      return 'rgba(200,200,200,0.25)';
-        if (overtime[i])  return 'rgba(255,193,7,0.8)';
-        return `rgba(${accentRgb},0.75)`;
-    });
-
-    const throughputCtx = document.getElementById('perf-throughput-chart');
-    if (throughputCtx) {
-        new Chart(throughputCtx, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Units completed',
-                    data: units,
-                    backgroundColor: barColors,
-                    borderRadius: 4,
-                    borderSkipped: false,
-                }]
+    const DATA = {
+        dept: {
+            labels:        {!! $deptData['labels'] !!},
+            units:         {!! $deptData['units'] !!},
+            overtime:      {!! $deptData['overtime'] !!},
+            totalJobs:     {{ $deptData['totalJobs'] }},
+            totalUnits:    {{ $deptData['totalUnits'] }},
+            avgUnits:      {{ $deptData['avgUnits'] }},
+            overtimeDays:  {{ $deptData['overtimeDays'] }},
+            byProduct:     {!! $deptData['productData'] !!},
+            productLabels: {!! $deptData['productLabels'] !!},
+            byPriority:    {
+                critical: {{ $deptData['byPriority']['critical'] ?? 0 }},
+                rush:     {{ $deptData['byPriority']['rush'] ?? 0 }},
+                normal:   {{ $deptData['byPriority']['normal'] ?? 0 }},
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => {
-                                const ot = overtime[ctx.dataIndex] ? ' ⚡ overtime' : '';
-                                return ` ${ctx.parsed.y.toLocaleString()} units${ot}`;
+        },
+        @if($mineData)
+        mine: {
+            labels:        {!! $mineData['labels'] !!},
+            units:         {!! $mineData['units'] !!},
+            overtime:      {!! $mineData['overtime'] !!},
+            totalJobs:     {{ $mineData['totalJobs'] }},
+            totalUnits:    {{ $mineData['totalUnits'] }},
+            avgUnits:      {{ $mineData['avgUnits'] }},
+            overtimeDays:  {{ $mineData['overtimeDays'] }},
+            byProduct:     {!! $mineData['productData'] !!},
+            productLabels: {!! $mineData['productLabels'] !!},
+            byPriority:    {
+                critical: {{ $mineData['byPriority']['critical'] ?? 0 }},
+                rush:     {{ $mineData['byPriority']['rush'] ?? 0 }},
+                normal:   {{ $mineData['byPriority']['normal'] ?? 0 }},
+            },
+        },
+        @endif
+    };
+
+    const palette = [
+        `rgba(${accentRgb},0.85)`,
+        'rgba(25,135,84,0.8)',
+        'rgba(255,193,7,0.8)',
+        'rgba(220,53,69,0.8)',
+        'rgba(111,66,193,0.8)',
+        'rgba(13,202,240,0.8)',
+    ];
+
+    const priorityColors = { critical: '#dc3545', rush: '#ffc107', normal: '#6c757d' };
+
+    // ── Build charts ──────────────────────────────────────────
+    let throughputChart = null;
+    let productChart    = null;
+
+    function barColors(units, overtime) {
+        return units.map((u, i) => {
+            if (u === 0)     return 'rgba(200,200,200,0.25)';
+            if (overtime[i]) return 'rgba(255,193,7,0.8)';
+            return `rgba(${accentRgb},0.75)`;
+        });
+    }
+
+    function initCharts(scope) {
+        const d = DATA[scope] || DATA.dept;
+
+        // Throughput
+        const tCtx = document.getElementById(uid + '-throughput');
+        if (tCtx) {
+            if (throughputChart) {
+                throughputChart.data.labels           = d.labels;
+                throughputChart.data.datasets[0].data = d.units;
+                throughputChart.data.datasets[0].backgroundColor = barColors(d.units, d.overtime);
+                throughputChart._overtimeRef = d.overtime;
+                throughputChart.update();
+            } else {
+                throughputChart = new Chart(tCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: d.labels,
+                        datasets: [{
+                            label: 'Units completed',
+                            data: d.units,
+                            backgroundColor: barColors(d.units, d.overtime),
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => {
+                                        const ot = d.overtime[ctx.dataIndex] ? ' ⚡ overtime' : '';
+                                        return ` ${ctx.parsed.y.toLocaleString()} units${ot}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0 } },
+                            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { precision: 0 } }
+                        }
+                    }
+                });
+                throughputChart._overtimeRef = d.overtime;
+            }
+        }
+
+        // Product donut
+        const pCtx = document.getElementById(uid + '-product');
+        if (pCtx) {
+            if (productChart) {
+                productChart.data.labels           = d.productLabels;
+                productChart.data.datasets[0].data = d.byProduct;
+                productChart.update();
+            } else {
+                productChart = new Chart(pCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: d.productLabels,
+                        datasets: [{
+                            data: d.byProduct,
+                            backgroundColor: palette.slice(0, d.byProduct.length),
+                            borderWidth: 2,
+                            borderColor: '#fff',
+                            hoverOffset: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10 } },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} units`
+                                }
                             }
                         }
                     }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { maxTicksLimit: 10, maxRotation: 0 }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(0,0,0,0.04)' },
-                        ticks: { precision: 0 }
-                    }
-                }
+                });
+            }
+        }
+    }
+
+    // ── Update KPIs ───────────────────────────────────────────
+    function updateKpis(scope) {
+        document.querySelectorAll('.' + uid + '-kpi-val').forEach(el => {
+            const val = el.dataset[scope] ?? el.dataset.dept;
+            el.textContent = parseInt(val).toLocaleString();
+            if (el.dataset.key === 'overtimeDays') {
+                el.style.color = parseInt(val) > 0 ? '#ffc107' : '#198754';
             }
         });
     }
 
-    // ── 2. Product mix donut ───────────────────────────────────
-    const productCtx = document.getElementById('perf-product-chart');
-    if (productCtx) {
-        const productLabels = {!! $productLabelsJson !!};
-        const productData   = {!! $productDataJson !!};
-
-        const palette = [
-            `rgba(${accentRgb},0.85)`,
-            'rgba(25,135,84,0.8)',
-            'rgba(255,193,7,0.8)',
-            'rgba(220,53,69,0.8)',
-            'rgba(111,66,193,0.8)',
-            'rgba(13,202,240,0.8)',
-        ];
-
-        new Chart(productCtx, {
-            type: 'doughnut',
-            data: {
-                labels: productLabels,
-                datasets: [{
-                    data: productData,
-                    backgroundColor: palette.slice(0, productData.length),
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                    hoverOffset: 6,
-                }]
-            },
-            options: {
-                responsive: true,
-                cutout: '65%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { boxWidth: 12, padding: 10 }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} units`
-                        }
-                    }
-                }
-            }
+    // ── Update priority bars ──────────────────────────────────
+    function updatePriority(scope) {
+        const d = DATA[scope] || DATA.dept;
+        const total = d.byPriority.critical + d.byPriority.rush + d.byPriority.normal;
+        ['critical', 'rush', 'normal'].forEach(key => {
+            const wrap = document.querySelector(`[data-pri="${key}"]`);
+            if (!wrap) return;
+            const count = d.byPriority[key] || 0;
+            const pct   = total > 0 ? Math.round(count / total * 100) : 0;
+            wrap.querySelector('.pri-label').textContent = `${count} jobs · ${pct}%`;
+            wrap.querySelector('.pri-bar').style.width   = pct + '%';
         });
     }
 
-    // ── Bootstrap tooltips on heatmap cells ───────────────────
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    // ── Update heatmap ────────────────────────────────────────
+    function updateHeatmap(scope) {
+        const d    = DATA[scope] || DATA.dept;
+        const maxU = Math.max(...d.units.filter(v => v > 0), 1);
+        document.querySelectorAll('.' + uid + '-cell').forEach(cell => {
+            const i  = parseInt(cell.dataset.idx);
+            const u  = d.units[i] || 0;
+            const ot = d.overtime[i];
+            const intensity = u > 0 ? Math.max(0.2, u / maxU).toFixed(2) : 0;
+            let bg, title;
+            if (u === 0) {
+                bg    = '#f1f3f5';
+                title = d.labels[i] + ': no activity';
+            } else if (ot) {
+                bg    = `rgba(255,193,7,${intensity})`;
+                title = `${d.labels[i]}: ${u.toLocaleString()} units (overtime)`;
+            } else {
+                bg    = `rgba(${accentRgb},${intensity})`;
+                title = `${d.labels[i]}: ${u.toLocaleString()} units`;
+            }
+            cell.style.background = bg;
+            // Update tooltip
+            const tip = bootstrap.Tooltip.getInstance(cell);
+            if (tip) {
+                tip.setContent({ '.tooltip-inner': title });
+            }
+            cell.setAttribute('title', title);
+        });
+    }
+
+    // ── Tab switching ─────────────────────────────────────────
+    let currentScope = 'dept';
+
+    function switchScope(scope) {
+        currentScope = scope;
+        initCharts(scope);
+        updateKpis(scope);
+        updatePriority(scope);
+        updateHeatmap(scope);
+
+        // Update tab button states
+        document.getElementById(uid + '-dept-tab')?.classList.toggle('active', scope === 'dept');
+        document.getElementById(uid + '-mine-tab')?.classList.toggle('active', scope === 'mine');
+    }
+
+    document.getElementById(uid + '-dept-tab')?.addEventListener('click', () => switchScope('dept'));
+    document.getElementById(uid + '-mine-tab')?.addEventListener('click', () => switchScope('mine'));
+
+    // ── Init ──────────────────────────────────────────────────
+    initCharts('dept');
+
+    // Bootstrap tooltips on heatmap cells
+    document.querySelectorAll('.' + uid + '-cell').forEach(el => {
         new bootstrap.Tooltip(el, { trigger: 'hover' });
     });
+
 }());
 </script>
 @endpush

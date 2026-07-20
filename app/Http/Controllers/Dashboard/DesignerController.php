@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\ProductionSchedule;
 use App\Services\Scheduling\SchedulingService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DesignerController extends Controller
@@ -15,7 +14,7 @@ class DesignerController extends Controller
 
     public function index(): View
     {
-        $plan = $this->scheduler->buildDailyPlan();
+        $plan  = $this->scheduler->buildDailyPlan();
         $queue = $plan->designQueue;
 
         $upcomingOrders = Order::with([])
@@ -30,63 +29,55 @@ class DesignerController extends Controller
             ->limit(20)
             ->get();
 
-        $perf = $this->perfStats('design');
+        $perf     = $this->perfStats('design');
+        $perfMine = $this->perfStats('design', auth()->id());
 
-        return view('dashboard.designer', compact('queue', 'upcomingOrders', 'perf'));
+        return view('dashboard.designer', compact('queue', 'upcomingOrders', 'perf', 'perfMine'));
     }
 
-    private function perfStats(string $dept): array
+    private function perfStats(string $dept, ?int $userId = null): array
     {
         $from = now()->subDays(29)->startOfDay();
 
-        // Daily completed units + overtime flag — last 30 days
-        $daily = ProductionSchedule::query()
+        $base = ProductionSchedule::query()
             ->where('department', $dept)
             ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', $from)
+            ->where('completed_at', '>=', $from);
+
+        if ($userId !== null) {
+            $base->where('completed_by', $userId);
+        }
+
+        $daily = (clone $base)
             ->selectRaw('DATE(completed_at) as day, SUM(quantity_scheduled) as units, MAX(is_overtime) as had_overtime, COUNT(*) as jobs')
             ->groupBy('day')
             ->orderBy('day')
             ->get()
             ->keyBy('day');
 
-        // Fill every calendar day (including days with no completions)
-        $labels = [];
-        $units  = [];
+        $labels   = [];
+        $units    = [];
         $overtime = [];
         for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
-            $short = now()->subDays($i)->format('d M');
-            $labels[]   = $short;
+            $date       = now()->subDays($i)->format('Y-m-d');
+            $labels[]   = now()->subDays($i)->format('d M');
             $units[]    = (int) ($daily[$date]->units ?? 0);
             $overtime[] = (bool) ($daily[$date]->had_overtime ?? false);
         }
 
-        // Last 30 days totals
-        $totalJobs  = $daily->sum('jobs');
-        $totalUnits = $daily->sum('units');
+        $totalJobs    = $daily->sum('jobs');
+        $totalUnits   = $daily->sum('units');
         $overtimeDays = $daily->filter(fn($d) => $d->had_overtime)->count();
         $activeDays   = $daily->count();
 
-        // Today's queue health
-        $health = $queue ?? null;
-
-        // Product type breakdown for completed work (last 30 days)
-        $byProduct = ProductionSchedule::query()
-            ->where('department', $dept)
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', $from)
+        $byProduct = (clone $base)
             ->join('orders', 'orders.id', '=', 'production_schedules.order_id')
             ->selectRaw('orders.product_type, SUM(production_schedules.quantity_scheduled) as units')
             ->groupBy('orders.product_type')
             ->pluck('units', 'product_type')
             ->toArray();
 
-        // Priority breakdown of completed jobs
-        $byPriority = ProductionSchedule::query()
-            ->where('department', $dept)
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', $from)
+        $byPriority = (clone $base)
             ->join('orders', 'orders.id', '=', 'production_schedules.order_id')
             ->selectRaw('orders.priority, COUNT(*) as jobs')
             ->groupBy('orders.priority')

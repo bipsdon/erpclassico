@@ -31,30 +31,37 @@ class SewingManagerController extends Controller
             ->limit(20)
             ->get();
 
-        $perf = $this->perfStats('sew');
+        $perf     = $this->perfStats('sew');
+        $perfMine = $this->perfStats('sew', auth()->id());
 
-        return view('dashboard.sewing', compact('queue', 'tomorrowQueue', 'upcomingOrders', 'perf'));
+        return view('dashboard.sewing', compact('queue', 'tomorrowQueue', 'upcomingOrders', 'perf', 'perfMine'));
     }
 
-    private function perfStats(string $dept): array
+    private function perfStats(string $dept, ?int $userId = null): array
     {
         $from = now()->subDays(29)->startOfDay();
 
-        $daily = ProductionSchedule::query()
+        $base = ProductionSchedule::query()
             ->where('department', $dept)
             ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', $from)
+            ->where('completed_at', '>=', $from);
+
+        if ($userId !== null) {
+            $base->where('completed_by', $userId);
+        }
+
+        $daily = (clone $base)
             ->selectRaw('DATE(completed_at) as day, SUM(quantity_scheduled) as units, MAX(is_overtime) as had_overtime, COUNT(*) as jobs')
             ->groupBy('day')
             ->orderBy('day')
             ->get()
             ->keyBy('day');
 
-        $labels = [];
-        $units  = [];
+        $labels   = [];
+        $units    = [];
         $overtime = [];
         for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
+            $date       = now()->subDays($i)->format('Y-m-d');
             $labels[]   = now()->subDays($i)->format('d M');
             $units[]    = (int) ($daily[$date]->units ?? 0);
             $overtime[] = (bool) ($daily[$date]->had_overtime ?? false);
@@ -65,20 +72,14 @@ class SewingManagerController extends Controller
         $overtimeDays = $daily->filter(fn($d) => $d->had_overtime)->count();
         $activeDays   = $daily->count();
 
-        $byProduct = ProductionSchedule::query()
-            ->where('department', $dept)
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', $from)
+        $byProduct = (clone $base)
             ->join('orders', 'orders.id', '=', 'production_schedules.order_id')
             ->selectRaw('orders.product_type, SUM(production_schedules.quantity_scheduled) as units')
             ->groupBy('orders.product_type')
             ->pluck('units', 'product_type')
             ->toArray();
 
-        $byPriority = ProductionSchedule::query()
-            ->where('department', $dept)
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', $from)
+        $byPriority = (clone $base)
             ->join('orders', 'orders.id', '=', 'production_schedules.order_id')
             ->selectRaw('orders.priority, COUNT(*) as jobs')
             ->groupBy('orders.priority')
