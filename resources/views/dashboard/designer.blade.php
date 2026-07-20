@@ -158,4 +158,11 @@
 
 </div>
 
+{{-- ── Performance charts ──────────────────────────────────── --}}
+@include('partials.perf-charts', [
+    'perf'        => $perf,
+    'accentColor' => '#0dcaf0',
+    'accentRgb'   => '13,202,240',
+])
+
 @endsection
