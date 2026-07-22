@@ -24,6 +24,9 @@
 @include('partials.perf-charts', [
     'perf'        => $perf,
     'perfMine'    => $perfMine,
+    'from'        => $from,
+    'to'          => $to,
+    'period'      => $period,
     'accentColor' => '#0dcaf0',
     'accentRgb'   => '13,202,240',
 ])

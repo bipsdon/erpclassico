@@ -1,15 +1,16 @@
 {{--
-    Performance visualisation partial — last 30 days.
+    Performance visualisation partial.
     Required: $perf (department-wide), $perfMine (current user only)
+    Required: $from (Carbon), $to (Carbon), $period (string)
     Optional: $accentColor (CSS color string), $accentRgb ('r,g,b')
+    Optional: $filterRoute (named route for the filter form — defaults to current URL)
 --}}
 @php
     $accentColor ??= '#0d6efd';
     $accentRgb   ??= '13,110,253';
     $perfMine    ??= null;
-    $userName     = auth()->user()->name;
 
-    // Unique suffix so multiple partials on same page don't clash (not needed here but safe)
+    // Unique suffix so multiple partials on same page don't clash
     $uid = uniqid('pc');
 
     $productTypes = \App\Models\CapacityConfig::productTypes();
@@ -20,7 +21,7 @@
         'normal'   => '#6c757d',
     ];
 
-    // Pre-encode both datasets for JS
+    // Pre-encode a dataset for JS consumption
     $encodePerf = function(array $p, array $pt): array {
         return [
             'labels'        => json_encode($p['labels']),
@@ -41,14 +42,88 @@
 
     $deptData = $encodePerf($perf, $productTypes);
     $mineData = $perfMine ? $encodePerf($perfMine, $productTypes) : null;
+
+    // Human-readable range label
+    $rangeLabel = match($period) {
+        'today' => 'Today',
+        'week'  => 'This Week',
+        'year'  => 'This Year',
+        'custom'=> $from->format('d M Y') . ' – ' . $to->format('d M Y'),
+        default => 'This Month',
+    };
 @endphp
 
-{{-- ── Section header + tab switcher ──────────────────────── --}}
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2 mb-3 pb-2"
+{{-- ══════════════════════════════════════════════════════════ --}}
+{{-- FILTER BAR                                                 --}}
+{{-- ══════════════════════════════════════════════════════════ --}}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="GET" action="" id="{{ $uid }}-filter-form" class="d-flex flex-wrap align-items-end gap-3">
+
+            {{-- Preset buttons --}}
+            <div>
+                <div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">
+                    Quick Range
+                </div>
+                <div class="btn-group" role="group">
+                    @foreach(['today' => 'Today', 'week' => 'Week', 'month' => 'Month', 'year' => 'Year'] as $key => $label)
+                        <a href="?period={{ $key }}"
+                           class="btn btn-sm {{ $period === $key ? 'btn-primary' : 'btn-outline-secondary' }}">
+                            {{ $label }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Divider --}}
+            <div class="vr d-none d-sm-block" style="height:38px"></div>
+
+            {{-- Custom date range --}}
+            <div class="d-flex align-items-end gap-2 flex-wrap">
+                <div>
+                    <label class="text-muted mb-1 d-block" style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">
+                        From
+                    </label>
+                    <input type="date" name="from" id="{{ $uid }}-from"
+                           class="form-control form-control-sm"
+                           style="min-width:140px"
+                           value="{{ $period === 'custom' ? $from->format('Y-m-d') : '' }}"
+                           max="{{ now()->format('Y-m-d') }}">
+                </div>
+                <div>
+                    <label class="text-muted mb-1 d-block" style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">
+                        To
+                    </label>
+                    <input type="date" name="to" id="{{ $uid }}-to"
+                           class="form-control form-control-sm"
+                           style="min-width:140px"
+                           value="{{ $period === 'custom' ? $to->format('Y-m-d') : '' }}"
+                           max="{{ now()->format('Y-m-d') }}">
+                </div>
+                <input type="hidden" name="period" id="{{ $uid }}-period-input" value="custom">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-funnel me-1"></i>Apply
+                </button>
+            </div>
+
+            {{-- Active range badge --}}
+            <div class="ms-auto">
+                <span class="badge border text-secondary bg-light px-3 py-2" style="font-size:.78rem">
+                    <i class="bi bi-calendar-range me-1"></i>
+                    {{ $rangeLabel }}
+                </span>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{{-- ── Section header + dept/mine tab switcher ─────────────── --}}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 pb-2"
      style="border-bottom:2px solid #dee2e6">
     <span style="font-size:.875rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#495057">
         <i class="bi bi-graph-up-arrow me-2" style="color:{{ $accentColor }}"></i>
-        Performance — Last 30 Days
+        Performance — {{ $rangeLabel }}
     </span>
     @if($perfMine !== null)
         <div class="d-flex gap-1">
@@ -184,7 +259,7 @@
             <div class="card-body">
                 <div class="fw-semibold mb-3" style="font-size:.875rem">
                     <i class="bi bi-calendar3 me-2 text-warning"></i>Activity Heatmap
-                    <span class="text-muted fw-normal" style="font-size:.72rem">— last 30 days</span>
+                    <span class="text-muted fw-normal" style="font-size:.72rem">— {{ $rangeLabel }}</span>
                 </div>
                 <div id="{{ $uid }}-heatmap" class="d-flex flex-wrap gap-1 align-content-start">
                     @php $maxU = max(array_filter($perf['units']) ?: [1]); @endphp
@@ -240,8 +315,8 @@
     Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     Chart.defaults.font.size   = 11;
 
-    const uid        = '{{ $uid }}';
-    const accentRgb  = '{{ $accentRgb }}';
+    const uid         = '{{ $uid }}';
+    const accentRgb   = '{{ $accentRgb }}';
     const accentColor = '{{ $accentColor }}';
 
     const DATA = {
@@ -255,7 +330,7 @@
             overtimeDays:  {{ $deptData['overtimeDays'] }},
             byProduct:     {!! $deptData['productData'] !!},
             productLabels: {!! $deptData['productLabels'] !!},
-            byPriority:    {
+            byPriority: {
                 critical: {{ $deptData['byPriority']['critical'] ?? 0 }},
                 rush:     {{ $deptData['byPriority']['rush'] ?? 0 }},
                 normal:   {{ $deptData['byPriority']['normal'] ?? 0 }},
@@ -272,7 +347,7 @@
             overtimeDays:  {{ $mineData['overtimeDays'] }},
             byProduct:     {!! $mineData['productData'] !!},
             productLabels: {!! $mineData['productLabels'] !!},
-            byPriority:    {
+            byPriority: {
                 critical: {{ $mineData['byPriority']['critical'] ?? 0 }},
                 rush:     {{ $mineData['byPriority']['rush'] ?? 0 }},
                 normal:   {{ $mineData['byPriority']['normal'] ?? 0 }},
@@ -289,8 +364,6 @@
         'rgba(111,66,193,0.8)',
         'rgba(13,202,240,0.8)',
     ];
-
-    const priorityColors = { critical: '#dc3545', rush: '#ffc107', normal: '#6c757d' };
 
     // ── Build charts ──────────────────────────────────────────
     let throughputChart = null;
@@ -311,8 +384,8 @@
         const tCtx = document.getElementById(uid + '-throughput');
         if (tCtx) {
             if (throughputChart) {
-                throughputChart.data.labels           = d.labels;
-                throughputChart.data.datasets[0].data = d.units;
+                throughputChart.data.labels                      = d.labels;
+                throughputChart.data.datasets[0].data            = d.units;
                 throughputChart.data.datasets[0].backgroundColor = barColors(d.units, d.overtime);
                 throughputChart._overtimeRef = d.overtime;
                 throughputChart.update();
@@ -344,7 +417,7 @@
                             }
                         },
                         scales: {
-                            x: { grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0 } },
+                            x: { grid: { display: false }, ticks: { maxTicksLimit: 12, maxRotation: 45 } },
                             y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { precision: 0 } }
                         }
                     }
@@ -403,7 +476,7 @@
 
     // ── Update priority bars ──────────────────────────────────
     function updatePriority(scope) {
-        const d = DATA[scope] || DATA.dept;
+        const d     = DATA[scope] || DATA.dept;
         const total = d.byPriority.critical + d.byPriority.rush + d.byPriority.normal;
         ['critical', 'rush', 'normal'].forEach(key => {
             const wrap = document.querySelector(`[data-pri="${key}"]`);
@@ -420,9 +493,9 @@
         const d    = DATA[scope] || DATA.dept;
         const maxU = Math.max(...d.units.filter(v => v > 0), 1);
         document.querySelectorAll('.' + uid + '-cell').forEach(cell => {
-            const i  = parseInt(cell.dataset.idx);
-            const u  = d.units[i] || 0;
-            const ot = d.overtime[i];
+            const i         = parseInt(cell.dataset.idx);
+            const u         = d.units[i] || 0;
+            const ot        = d.overtime[i];
             const intensity = u > 0 ? Math.max(0.2, u / maxU).toFixed(2) : 0;
             let bg, title;
             if (u === 0) {
@@ -436,16 +509,13 @@
                 title = `${d.labels[i]}: ${u.toLocaleString()} units`;
             }
             cell.style.background = bg;
-            // Update tooltip
             const tip = bootstrap.Tooltip.getInstance(cell);
-            if (tip) {
-                tip.setContent({ '.tooltip-inner': title });
-            }
+            if (tip) tip.setContent({ '.tooltip-inner': title });
             cell.setAttribute('title', title);
         });
     }
 
-    // ── Tab switching ─────────────────────────────────────────
+    // ── Dept / Mine tab switching ─────────────────────────────
     let currentScope = 'dept';
 
     function switchScope(scope) {
@@ -471,10 +541,26 @@
     document.getElementById(uid + '-dept-tab')?.addEventListener('click', () => switchScope('dept'));
     document.getElementById(uid + '-mine-tab')?.addEventListener('click', () => switchScope('mine'));
 
+    // ── Custom date range: auto-set period=custom on date input ──
+    const fromInput   = document.getElementById(uid + '-from');
+    const toInput     = document.getElementById(uid + '-to');
+    const periodInput = document.getElementById(uid + '-period-input');
+
+    // Enforce from ≤ to
+    fromInput?.addEventListener('change', () => {
+        if (toInput && fromInput.value && toInput.value && fromInput.value > toInput.value) {
+            toInput.value = fromInput.value;
+        }
+    });
+    toInput?.addEventListener('change', () => {
+        if (fromInput && toInput.value && fromInput.value && toInput.value < fromInput.value) {
+            fromInput.value = toInput.value;
+        }
+    });
+
     // ── Init ──────────────────────────────────────────────────
     initCharts('dept');
 
-    // Bootstrap tooltips on heatmap cells
     document.querySelectorAll('.' + uid + '-cell').forEach(el => {
         new bootstrap.Tooltip(el, { trigger: 'hover' });
     });
