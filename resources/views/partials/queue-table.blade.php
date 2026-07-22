@@ -165,7 +165,16 @@
                                     </div>
                                 </td>
 
-                                <td style="font-size:.875rem" data-val="{{ $order->customerName }}">{{ $order->customerName }}</td>
+                                <td style="font-size:.875rem" data-val="{{ $order->customerName }}">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <x-order-avatar
+                                            :url="$order->profilePictureUrl"
+                                            :initials="$order->avatarInitials"
+                                            :size="30"
+                                        />
+                                        {{ $order->customerName }}
+                                    </div>
+                                </td>
 
                                 <td class="text-center" data-val="{{ $order->productTypeLabel }}">
                                     <span class="badge bg-light text-secondary border" style="font-size:.72rem">

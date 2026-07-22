@@ -361,3 +361,63 @@ document.getElementById('players-body').addEventListener('click', function (e) {
 
 renumberRows();
 </script>
+
+<script>
+// ─── Profile photo URL — live avatar preview ──────────────
+(function () {
+    const urlInput = document.getElementById('profile_picture_url');
+    if (!urlInput) return;
+
+    // Find the <img> and the fallback <span> inside the preview widget.
+    // The component wraps them in a .order-avatar-wrap span.
+    const wrap     = document.querySelector('.avatar-live-preview');
+    if (!wrap) return;
+
+    const imgEl      = wrap.querySelector('img');
+    const fallbackEl = wrap.querySelector('span[id$="-fallback"]');
+
+    function applyUrl(url) {
+        url = url.trim();
+
+        if (!url) {
+            // No URL — show only the fallback
+            if (imgEl) imgEl.style.display = 'none';
+            if (fallbackEl) fallbackEl.style.zIndex = 1;
+            return;
+        }
+
+        if (imgEl) {
+            imgEl.src          = url;
+            imgEl.style.display = '';
+            imgEl.style.zIndex  = 1;
+            if (fallbackEl) fallbackEl.style.zIndex = 0;
+        } else {
+            // No <img> yet (no URL was set server-side) — create one
+            const newImg         = document.createElement('img');
+            newImg.alt           = '';
+            newImg.loading       = 'lazy';
+            newImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;z-index:1;';
+            newImg.onerror = function () {
+                this.style.display = 'none';
+                if (fallbackEl) fallbackEl.style.zIndex = 1;
+            };
+            newImg.src = url;
+            wrap.appendChild(newImg);
+            if (fallbackEl) fallbackEl.style.zIndex = 0;
+        }
+    }
+
+    // Debounce — only apply after the user stops typing for 500ms
+    let debounceTimer;
+    urlInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => applyUrl(this.value), 500);
+    });
+
+    // Also apply immediately on blur (paste / autocomplete)
+    urlInput.addEventListener('blur', function () {
+        clearTimeout(debounceTimer);
+        applyUrl(this.value);
+    });
+}());
+</script>

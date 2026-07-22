@@ -204,8 +204,17 @@
                         </td>
 
                         <td>
-                            <div style="font-size:.875rem">{{ $order->customer_name }}</div>
-                            <div class="text-muted" style="font-size:.75rem">{{ $order->customer_phone }}</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <x-order-avatar
+                                    :url="$order->profile_picture_url"
+                                    :initials="$order->avatar_initials"
+                                    :size="32"
+                                />
+                                <div>
+                                    <div style="font-size:.875rem">{{ $order->customer_name }}</div>
+                                    <div class="text-muted" style="font-size:.75rem">{{ $order->customer_phone }}</div>
+                                </div>
+                            </div>
                         </td>
 
                         <td class="text-center fw-semibold">{{ number_format($order->quantity) }}</td>

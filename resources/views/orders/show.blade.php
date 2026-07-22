@@ -89,8 +89,18 @@
 
                     <div class="col-6 col-md-3">
                         <div class="text-muted small">Customer</div>
-                        <div class="fw-semibold">{{ $order->customer_name }}</div>
-                        <div class="text-muted small">{{ $order->customer_phone }}</div>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <x-order-avatar
+                                :url="$order->profile_picture_url"
+                                :initials="$order->avatar_initials"
+                                :size="40"
+                                fontSize=".8rem"
+                            />
+                            <div>
+                                <div class="fw-semibold">{{ $order->customer_name }}</div>
+                                <div class="text-muted small">{{ $order->customer_phone }}</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-6 col-md-2 text-center">

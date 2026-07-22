@@ -18,6 +18,7 @@ class Order extends Model
         'customer_name',
         'customer_phone',
         'whatsapp_order_id',
+        'profile_picture_url',
         'quantity',
         'product_type',
         'order_date',
@@ -55,6 +56,34 @@ class Order extends Model
     public function getProductTypeLabelAttribute(): string
     {
         return CapacityConfig::productTypes()[$this->product_type] ?? ucfirst($this->product_type);
+    }
+
+    /**
+     * Generate short text initials from the customer name for the avatar fallback.
+     * Algorithm: first letter of each word; if a "word" is purely numeric, keep
+     * the whole number. Result is uppercased and capped at 5 characters.
+     * e.g. "Ashad ord 23"  → "AO23"
+     *      "FC United"     → "FCU"
+     *      "Ali"           → "AL"
+     */
+    public function getAvatarInitialsAttribute(): string
+    {
+        $words = preg_split('/\s+/', trim($this->customer_name));
+        $initials = '';
+
+        foreach ($words as $word) {
+            if ($word === '') {
+                continue;
+            }
+            // If the word is purely digits, append the whole number
+            if (ctype_digit($word)) {
+                $initials .= $word;
+            } else {
+                $initials .= mb_substr($word, 0, 1);
+            }
+        }
+
+        return mb_strtoupper(mb_substr($initials, 0, 5));
     }
 
     /**

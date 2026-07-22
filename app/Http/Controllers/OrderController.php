@@ -113,8 +113,8 @@ class OrderController extends Controller
         DB::transaction(function () use ($request) {
             $order = Order::create([
                 ...$request->only([
-                    'customer_name', 'customer_phone', 'whatsapp_order_id', 'quantity', 'product_type',
-                    'order_date', 'delivery_date', 'priority',
+                    'customer_name', 'customer_phone', 'whatsapp_order_id', 'profile_picture_url',
+                    'quantity', 'product_type', 'order_date', 'delivery_date', 'priority',
                     'details', 'notes',
                 ]),
                 'stage'      => 'design',
@@ -174,8 +174,8 @@ class OrderController extends Controller
             $fromStatus = $order->status;
 
             $order->update($request->only([
-                'customer_name', 'customer_phone', 'whatsapp_order_id', 'quantity', 'product_type',
-                'order_date', 'delivery_date', 'priority',
+                'customer_name', 'customer_phone', 'whatsapp_order_id', 'profile_picture_url',
+                'quantity', 'product_type', 'order_date', 'delivery_date', 'priority',
                 'stage', 'pipeline', 'status', 'details', 'notes',
             ]));
 
@@ -214,11 +214,12 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($order) {
             $newOrder = Order::create([
-                'customer_name'     => $order->customer_name,
-                'customer_phone'    => $order->customer_phone,
-                'whatsapp_order_id' => $order->whatsapp_order_id,
-                'quantity'          => $order->quantity,
-                'product_type'      => $order->product_type,
+                'customer_name'       => $order->customer_name,
+                'customer_phone'      => $order->customer_phone,
+                'whatsapp_order_id'   => $order->whatsapp_order_id,
+                'profile_picture_url' => $order->profile_picture_url,
+                'quantity'            => $order->quantity,
+                'product_type'        => $order->product_type,
                 'order_date'        => now()->toDateString(),
                 'delivery_date'     => $order->delivery_date->toDateString(),
                 'priority'          => $order->priority,

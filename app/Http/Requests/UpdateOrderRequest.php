@@ -26,6 +26,7 @@ class UpdateOrderRequest extends FormRequest
             'customer_name'  => ['required', 'string', 'max:150'],
             'customer_phone' => ['required', 'string', 'max:30'],
             'whatsapp_order_id' => ['nullable', 'string', 'max:100'],
+            'profile_picture_url' => ['nullable', 'url', 'max:2048'],
             'quantity'       => ['required', 'integer', 'min:1', 'max:9999'],
             'product_type'   => ['required', 'string', 'in:jersey,tracksuit,polo_shirt,shorts,other'],
             'order_date'     => ['required', 'date'],
