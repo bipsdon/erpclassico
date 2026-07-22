@@ -31,10 +31,15 @@ class PrintingManagerController extends Controller
             ->limit(20)
             ->get();
 
+        return view('dashboard.printing', compact('queue', 'tomorrowQueue', 'upcomingOrders'));
+    }
+
+    public function performance(): View
+    {
         $perf     = $this->perfStats('print');
         $perfMine = $this->perfStats('print', auth()->id());
 
-        return view('dashboard.printing', compact('queue', 'tomorrowQueue', 'upcomingOrders', 'perf', 'perfMine'));
+        return view('dashboard.printing-performance', compact('perf', 'perfMine'));
     }
 
     private function perfStats(string $dept, ?int $userId = null): array

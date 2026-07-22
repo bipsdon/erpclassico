@@ -31,10 +31,15 @@ class SewingManagerController extends Controller
             ->limit(20)
             ->get();
 
+        return view('dashboard.sewing', compact('queue', 'tomorrowQueue', 'upcomingOrders'));
+    }
+
+    public function performance(): View
+    {
         $perf     = $this->perfStats('sew');
         $perfMine = $this->perfStats('sew', auth()->id());
 
-        return view('dashboard.sewing', compact('queue', 'tomorrowQueue', 'upcomingOrders', 'perf', 'perfMine'));
+        return view('dashboard.sewing-performance', compact('perf', 'perfMine'));
     }
 
     private function perfStats(string $dept, ?int $userId = null): array

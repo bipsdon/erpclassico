@@ -62,17 +62,32 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:pipeline_manager,designer')
         ->name('dashboard.designer');
 
+    Route::get('/dashboard/designer/performance',
+        [DesignerController::class, 'performance'])
+        ->middleware('role:pipeline_manager,designer')
+        ->name('dashboard.designer.performance');
+
     // Printing Manager
     Route::get('/dashboard/printing',
         [PrintingManagerController::class, 'index'])
         ->middleware('role:pipeline_manager,printing_manager')
         ->name('dashboard.printing');
 
+    Route::get('/dashboard/printing/performance',
+        [PrintingManagerController::class, 'performance'])
+        ->middleware('role:pipeline_manager,printing_manager')
+        ->name('dashboard.printing.performance');
+
     // Sewing Manager
     Route::get('/dashboard/sewing',
         [SewingManagerController::class, 'index'])
         ->middleware('role:pipeline_manager,sewing_manager')
         ->name('dashboard.sewing');
+
+    Route::get('/dashboard/sewing/performance',
+        [SewingManagerController::class, 'performance'])
+        ->middleware('role:pipeline_manager,sewing_manager')
+        ->name('dashboard.sewing.performance');
 
     // ─── Staff Performance Report (pipeline manager only) ────
     Route::get('/reports/staff-performance',

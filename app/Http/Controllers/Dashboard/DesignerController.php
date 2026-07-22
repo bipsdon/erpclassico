@@ -29,10 +29,15 @@ class DesignerController extends Controller
             ->limit(20)
             ->get();
 
+        return view('dashboard.designer', compact('queue', 'upcomingOrders'));
+    }
+
+    public function performance(): View
+    {
         $perf     = $this->perfStats('design');
         $perfMine = $this->perfStats('design', auth()->id());
 
-        return view('dashboard.designer', compact('queue', 'upcomingOrders', 'perf', 'perfMine'));
+        return view('dashboard.designer-performance', compact('perf', 'perfMine'));
     }
 
     private function perfStats(string $dept, ?int $userId = null): array

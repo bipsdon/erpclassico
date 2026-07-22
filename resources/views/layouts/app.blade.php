@@ -257,6 +257,11 @@
                         <i class="bi bi-pencil-square"></i> Design Queue
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('dashboard.designer.performance') }}" class="nav-link {{ request()->routeIs('dashboard.designer.performance') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line"></i> Design Performance
+                    </a>
+                </li>
             @endif
 
             @if(auth()->user()->isPipelineManager() || auth()->user()->isPrintingManager())
@@ -265,12 +270,22 @@
                         <i class="bi bi-printer"></i> Print Queue
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('dashboard.printing.performance') }}" class="nav-link {{ request()->routeIs('dashboard.printing.performance') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line"></i> Print Performance
+                    </a>
+                </li>
             @endif
 
             @if(auth()->user()->isPipelineManager() || auth()->user()->isSewingManager())
                 <li class="nav-item">
                     <a href="{{ route('dashboard.sewing') }}" class="nav-link {{ request()->routeIs('dashboard.sewing') ? 'active' : '' }}">
                         <i class="bi bi-scissors"></i> Sewing Queue
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('dashboard.sewing.performance') }}" class="nav-link {{ request()->routeIs('dashboard.sewing.performance') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line"></i> Sewing Performance
                     </a>
                 </li>
             @endif
