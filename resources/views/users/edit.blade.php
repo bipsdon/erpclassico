@@ -36,6 +36,7 @@
                             <option value="designer"         {{ old('role', $user->role) === 'designer'         ? 'selected' : '' }}>Designer</option>
                             <option value="printing_manager" {{ old('role', $user->role) === 'printing_manager' ? 'selected' : '' }}>Printing Manager</option>
                             <option value="sewing_manager"   {{ old('role', $user->role) === 'sewing_manager'   ? 'selected' : '' }}>Sewing Manager</option>
+                            <option value="delivery_incharge"{{ old('role', $user->role) === 'delivery_incharge' ? 'selected' : '' }}>Delivery Incharge</option>
                         </select>
                         @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>

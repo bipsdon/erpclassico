@@ -280,31 +280,35 @@
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 @auth
-                                    @if(auth()->user()->isPipelineManager())
+                                    @if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
                                         @if($order->stage === 'ready')
+                                            <button type="button"
+                                                    class="btn btn-success"
+                                                    title="Mark as Delivered"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deliverModal"
+                                                    data-order-id="{{ $order->id }}"
+                                                    data-order-ref="{{ $order->whatsapp_order_id ?? $order->order_number }}"
+                                                    data-require-challan="{{ auth()->user()->isDeliveryIncharge() ? 'true' : 'false' }}">
+                                                <i class="bi bi-truck"></i>
+                                            </button>
+                                        @endif
+                                        @if(auth()->user()->isPipelineManager())
+                                            <a href="{{ route('orders.edit', $order) }}"
+                                               class="btn btn-outline-primary"
+                                               title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
                                             <form method="POST"
-                                                  action="{{ route('production.deliver', $order) }}"
-                                                  onsubmit="return confirm('Mark {{ $order->whatsapp_order_id ?? $order->order_number }} as delivered?')">
-                                                @csrf @method('PATCH')
-                                                <button class="btn btn-success" title="Mark as Delivered">
-                                                    <i class="bi bi-truck"></i>
+                                                  action="{{ route('orders.destroy', $order) }}"
+                                                  onsubmit="return confirm('Delete order {{ $order->whatsapp_order_id ?? $order->order_number }}? This cannot be undone.')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-outline-danger" title="Delete">
+                                                    <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
                                         @endif
-                                        <a href="{{ route('orders.edit', $order) }}"
-                                           class="btn btn-outline-primary"
-                                           title="Edit">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form method="POST"
-                                              action="{{ route('orders.destroy', $order) }}"
-                                              onsubmit="return confirm('Delete order {{ $order->whatsapp_order_id ?? $order->order_number }}? This cannot be undone.')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-outline-danger" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
                                     @endif
                                 @endauth
                             </div>
@@ -335,3 +339,91 @@
 </div>
 
 @endsection
+
+{{-- ── Deliver modal ────────────────────────────────────────── --}}
+@auth
+@if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
+<div class="modal fade" id="deliverModal" tabindex="-1" aria-labelledby="deliverModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold" id="deliverModalLabel">
+                    <i class="bi bi-truck me-2 text-success"></i>Mark as Delivered
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="deliverForm" method="POST" action="">
+                @csrf @method('PATCH')
+                <div class="modal-body pt-2">
+                    <p class="text-muted mb-3" id="deliverModalDesc"></p>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">
+                            Challan Number
+                            @if(auth()->user()->isDeliveryIncharge())
+                                <span class="text-danger">*</span>
+                            @else
+                                <small class="text-muted fw-normal">(optional for Pipeline Manager)</small>
+                            @endif
+                        </label>
+                        <input type="text"
+                               name="challan_number"
+                               id="challanInput"
+                               class="form-control"
+                               placeholder="e.g. CH-2026-001"
+                               {{ auth()->user()->isDeliveryIncharge() ? 'required' : '' }}>
+                        <div class="invalid-feedback">A Challan Number is required.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-truck me-1"></i>Confirm Delivery
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('deliverModal');
+    if (!modal) return;
+
+    modal.addEventListener('show.bs.modal', function (e) {
+        const btn        = e.relatedTarget;
+        const orderId    = btn.dataset.orderId;
+        const orderRef   = btn.dataset.orderRef;
+        const reqChallan = btn.dataset.requireChallan === 'true';
+
+        // Set form action
+        document.getElementById('deliverForm').action =
+            '/production/' + orderId + '/deliver';
+
+        // Set description
+        document.getElementById('deliverModalDesc').textContent =
+            'You are about to mark order ' + orderRef + ' as delivered to the customer.';
+
+        // Toggle challan required state
+        const input = document.getElementById('challanInput');
+        input.value = '';
+        input.classList.remove('is-invalid');
+        input.required = reqChallan;
+    });
+
+    // Client-side validation before submit
+    document.getElementById('deliverForm').addEventListener('submit', function (e) {
+        const input = document.getElementById('challanInput');
+        if (input.required && !input.value.trim()) {
+            e.preventDefault();
+            input.classList.add('is-invalid');
+            input.focus();
+        }
+    });
+});
+</script>
+@endpush
+
+@endif
+@endauth

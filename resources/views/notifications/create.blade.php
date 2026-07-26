@@ -33,6 +33,9 @@
                             <option value="sewing_manager"   {{ old('target_department') === 'sewing_manager'   ? 'selected' : '' }}>
                                 ✂️ Sewing Team
                             </option>
+                            <option value="delivery_incharge"{{ old('target_department') === 'delivery_incharge' ? 'selected' : '' }}>
+                                🚚 Delivery Team
+                            </option>
                         </select>
                         @error('target_department')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>

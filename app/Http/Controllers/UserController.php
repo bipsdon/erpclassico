@@ -33,7 +33,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:100'],
             'email'    => ['required', 'email', 'max:150', 'unique:users,email'],
-            'role'     => ['required', 'in:pipeline_manager,designer,printing_manager,sewing_manager'],
+            'role'     => ['required', 'in:pipeline_manager,designer,printing_manager,sewing_manager,delivery_incharge'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
@@ -62,7 +62,7 @@ class UserController extends Controller
         $rules = [
             'name'  => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', "unique:users,email,{$user->id}"],
-            'role'  => ['required', 'in:pipeline_manager,designer,printing_manager,sewing_manager'],
+            'role'  => ['required', 'in:pipeline_manager,designer,printing_manager,sewing_manager,delivery_incharge'],
         ];
 
         if ($request->filled('password')) {

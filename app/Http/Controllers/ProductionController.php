@@ -8,6 +8,7 @@ use App\Models\PipelineNotification;
 use App\Models\ProductionSchedule;
 use App\Services\Scheduling\SchedulingService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 class ProductionController extends Controller
 {
@@ -160,19 +161,42 @@ class ProductionController extends Controller
     // Route: PATCH /production/{order}/deliver
     // ──────────────────────────────────────────────
 
-    public function deliver(Order $order): RedirectResponse
+    public function deliver(Request $request, Order $order): RedirectResponse
     {
-        abort_unless(auth()->user()->isPipelineManager(), 403, 'Only pipeline managers can mark orders as delivered.');
+        $user = auth()->user();
+
+        abort_unless(
+            $user->isPipelineManager() || $user->isDeliveryIncharge(),
+            403,
+            'Only pipeline managers or delivery incharge can mark orders as delivered.'
+        );
 
         if ($order->stage !== 'ready') {
             return back()->with('error', 'Order must be in Ready stage before it can be marked as delivered.');
         }
 
-        DB::transaction(function () use ($order) {
-            $order->update([
-                'stage'  => 'delivered',
-                'status' => 'completed',
+        // Delivery Incharge must supply a challan number
+        if ($user->isDeliveryIncharge()) {
+            $validated = $request->validate([
+                'challan_number' => ['required', 'string', 'min:1', 'max:100'],
+            ], [
+                'challan_number.required' => 'A Challan Number is required to mark this order as delivered.',
             ]);
+        }
+
+        DB::transaction(function () use ($request, $order, $user) {
+            $updateData = [
+                'stage'        => 'delivered',
+                'status'       => 'completed',
+                'delivered_by' => $user->id,
+            ];
+
+            // Capture challan number if provided (required for delivery incharge, optional for PM)
+            if ($request->filled('challan_number')) {
+                $updateData['challan_number'] = $request->input('challan_number');
+            }
+
+            $order->update($updateData);
 
             OrderStageLog::create([
                 'order_id'    => $order->id,
@@ -180,8 +204,9 @@ class ProductionController extends Controller
                 'to_stage'    => 'delivered',
                 'from_status' => 'completed',
                 'to_status'   => 'completed',
-                'changed_by'  => auth()->id(),
-                'notes'       => 'Order delivered to customer.',
+                'changed_by'  => $user->id,
+                'notes'       => 'Order delivered to customer.'
+                    . ($request->filled('challan_number') ? ' Challan: ' . $request->input('challan_number') : ''),
             ]);
         });
 
@@ -189,6 +214,29 @@ class ProductionController extends Controller
 
         return redirect()->back()
             ->with('success', "Order {$ref} marked as delivered.");
+    }
+
+    // ──────────────────────────────────────────────
+    // Set delivery info (method + details) — PM only
+    // Route: PATCH /production/{order}/delivery-info
+    // ──────────────────────────────────────────────
+
+    public function setDeliveryInfo(Request $request, Order $order): RedirectResponse
+    {
+        abort_unless(auth()->user()->isPipelineManager(), 403, 'Only pipeline managers can set delivery info.');
+
+        if (! in_array($order->stage, ['ready', 'delivered'])) {
+            return back()->with('error', 'Delivery info can only be set for orders that are ready or delivered.');
+        }
+
+        $validated = $request->validate([
+            'delivery_method'  => ['nullable', 'in:pathao,company_delivery,bus_ma_haldine,customer_pickup,ncm'],
+            'delivery_details' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $order->update($validated);
+
+        return back()->with('success', 'Delivery information updated.');
     }
 
     // ──────────────────────────────────────────────
@@ -210,10 +258,22 @@ class ProductionController extends Controller
         $ref = $order->whatsapp_order_id ?? $order->order_number;
 
         if ($nextStage === 'ready') {
+            // Notify pipeline manager
             PipelineNotification::create([
                 'sent_by'           => auth()->id(),
                 'target_department' => 'pipeline_manager',
                 'subject'           => "✅ Order {$ref} is Ready for Delivery",
+                'message'           => "Order {$ref} for {$order->customer_name} has completed all "
+                                     . "production stages and is ready for delivery.\n\n"
+                                     . "Quantity: {$order->quantity} × {$order->product_type_label}\n"
+                                     . "Delivery date: {$order->delivery_date->format('d M Y')}\n"
+                                     . "Priority: " . ucfirst($order->priority),
+            ]);
+            // Also notify delivery incharge
+            PipelineNotification::create([
+                'sent_by'           => auth()->id(),
+                'target_department' => 'delivery_incharge',
+                'subject'           => "📦 Order {$ref} is Ready for Delivery",
                 'message'           => "Order {$ref} for {$order->customer_name} has completed all "
                                      . "production stages and is ready for delivery.\n\n"
                                      . "Quantity: {$order->quantity} × {$order->product_type_label}\n"

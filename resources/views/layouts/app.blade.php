@@ -241,6 +241,55 @@
                 </li>
             @endif
 
+            @if(auth()->user()->isDeliveryIncharge())
+                {{-- ── Delivery Incharge: only what they need ── --}}
+                <li><span class="nav-section">Delivery</span></li>
+                <li class="nav-item">
+                    <a href="{{ route('dashboard.delivery') }}"
+                       class="nav-link {{ request()->routeIs('dashboard.delivery') ? 'active' : '' }}">
+                        <i class="bi bi-truck"></i> Delivery Queue
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('orders.index', ['stage' => 'ready']) }}"
+                       class="nav-link {{ request()->is('orders*') && request('stage') === 'ready' ? 'active' : '' }}">
+                        <i class="bi bi-box-seam"></i> Ready Orders
+                    </a>
+                </li>
+                <li><span class="nav-section">Messages</span></li>
+                <li class="nav-item">
+                    <a href="{{ route('notifications.inbox') }}"
+                       class="nav-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }} d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-bell"></i> Notifications</span>
+                        <span id="sidebar-notif-badge" class="badge bg-danger rounded-pill" style="font-size:.65rem;display:none"></span>
+                    </a>
+                </li>
+            @else
+
+            @if(auth()->user()->isPipelineManager())
+                <li><span class="nav-section">Management</span></li>
+                <li class="nav-item">
+                    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+                        <i class="bi bi-card-list"></i> All Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                        <i class="bi bi-people"></i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('capacity.index') }}" class="nav-link {{ request()->routeIs('capacity.*') ? 'active' : '' }}">
+                        <i class="bi bi-sliders"></i> Capacity Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('notifications.create') }}" class="nav-link {{ request()->routeIs('notifications.create') ? 'active' : '' }}">
+                        <i class="bi bi-megaphone"></i> Send Notification
+                    </a>
+                </li>
+            @endif
+
             <li><span class="nav-section">Production</span></li>
 
             @if(auth()->user()->isPrintingManager() || auth()->user()->isSewingManager() || auth()->user()->isDesigner())
@@ -344,6 +393,8 @@
                           style="font-size:.65rem;display:none"></span>
                 </a>
             </li>
+
+            @endif {{-- end delivery_incharge else --}}
         @endauth
 
     </ul>

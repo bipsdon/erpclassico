@@ -34,7 +34,7 @@ class NotificationController extends Controller
         abort_unless(auth()->user()->isPipelineManager(), 403);
 
         $data = $request->validate([
-            'target_department' => ['nullable', 'in:designer,printing_manager,sewing_manager'],
+            'target_department' => ['nullable', 'in:designer,printing_manager,sewing_manager,delivery_incharge'],
             'subject'           => ['required', 'string', 'max:200'],
             'message'           => ['required', 'string', 'max:2000'],
         ]);
@@ -48,9 +48,10 @@ class NotificationController extends Controller
 
         $target = $data['target_department']
             ? match ($data['target_department']) {
-                'designer'         => 'Design Team',
-                'printing_manager' => 'Printing Team',
-                'sewing_manager'   => 'Sewing Team',
+                'designer'          => 'Design Team',
+                'printing_manager'  => 'Printing Team',
+                'sewing_manager'    => 'Sewing Team',
+                'delivery_incharge' => 'Delivery Team',
             }
             : 'All Departments';
 

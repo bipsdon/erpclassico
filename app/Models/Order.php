@@ -30,6 +30,11 @@ class Order extends Model
         'details',
         'notes',
         'created_by',
+        // Delivery fields (set by pipeline manager before handover)
+        'delivery_method',
+        'delivery_details',
+        'challan_number',
+        'delivered_by',
     ];
 
     // ──────────────────────────────────────────────
@@ -94,6 +99,45 @@ class Order extends Model
     {
         return $this->delivery_date->copy()->startOfDay()->lt(now()->startOfDay())
             && $this->stage !== 'delivered';
+    }
+
+    /**
+     * Human-readable delivery method label.
+     */
+    public function getDeliveryMethodLabelAttribute(): string
+    {
+        return match ($this->delivery_method) {
+            'pathao'           => 'Pathao',
+            'company_delivery' => 'Company Delivery',
+            'bus_ma_haldine'   => 'Bus Ma Haldine',
+            'customer_pickup'  => 'Customer Pickup',
+            'ncm'              => 'NCM',
+            default            => $this->delivery_method ? ucfirst($this->delivery_method) : '—',
+        };
+    }
+
+    /**
+     * Delivery priority automatically derived from delivery_date proximity.
+     * urgent  = due today or overdue
+     * high    = due within 1 day
+     * normal  = due in 2+ days
+     */
+    public function getDeliveryPriorityAttribute(): string
+    {
+        $days = (int) now()->startOfDay()->diffInDays($this->delivery_date, false);
+
+        if ($days <= 0) return 'urgent';
+        if ($days === 1) return 'high';
+        return 'normal';
+    }
+
+    public function getDeliveryPriorityBadgeAttribute(): string
+    {
+        return match ($this->delivery_priority) {
+            'urgent' => 'danger',
+            'high'   => 'warning',
+            default  => 'secondary',
+        };
     }
 
     /**
@@ -229,6 +273,11 @@ class Order extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function deliveredByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delivered_by');
     }
 
     public function players(): HasMany

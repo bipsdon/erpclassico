@@ -21,6 +21,7 @@
     .dept-badge-design    { background: #cff4fc; color: #0a6678; }
     .dept-badge-print     { background: #fff3cd; color: #856404; }
     .dept-badge-sew       { background: #ede9fe; color: #5b21b6; }
+    .dept-badge-delivery  { background: #d1fae5; color: #065f46; }
     .trend-canvas { max-height: 48px; }
     .metric-label { font-size: .72rem; color: #6c757d; text-transform: uppercase; letter-spacing: .4px; }
     .metric-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; }
@@ -96,9 +97,10 @@
 <div class="row g-3 mb-4">
     @php
         $deptMeta = [
-            'design' => ['label' => 'Design',   'icon' => 'bi-pencil-square', 'color' => 'info',    'cls' => 'dept-badge-design'],
-            'print'  => ['label' => 'Printing',  'icon' => 'bi-printer',       'color' => 'warning', 'cls' => 'dept-badge-print'],
-            'sew'    => ['label' => 'Sewing',    'icon' => 'bi-scissors',      'color' => 'purple',  'cls' => 'dept-badge-sew'],
+            'design'   => ['label' => 'Design',           'icon' => 'bi-pencil-square', 'color' => 'info',    'cls' => 'dept-badge-design'],
+            'print'    => ['label' => 'Printing',          'icon' => 'bi-printer',       'color' => 'warning', 'cls' => 'dept-badge-print'],
+            'sew'      => ['label' => 'Sewing',            'icon' => 'bi-scissors',      'color' => 'purple',  'cls' => 'dept-badge-sew'],
+            'delivery' => ['label' => 'Delivery Incharge', 'icon' => 'bi-truck',         'color' => 'success', 'cls' => 'dept-badge-delivery'],
         ];
     @endphp
 
@@ -119,11 +121,11 @@
                     <div class="row g-2 text-center">
                         <div class="col-4">
                             <div class="metric-value text-primary">{{ number_format($t['orders']) }}</div>
-                            <div class="metric-label">Orders</div>
+                            <div class="metric-label">{{ $dept === 'delivery' ? 'Delivered' : 'Orders' }}</div>
                         </div>
                         <div class="col-4">
                             <div class="metric-value text-success">{{ number_format($t['units']) }}</div>
-                            <div class="metric-label">Units</div>
+                            <div class="metric-label">{{ $dept === 'delivery' ? 'Units' : 'Units' }}</div>
                         </div>
                         <div class="col-4">
                             <div class="metric-value {{ $t['late'] > 0 ? 'text-danger' : 'text-muted' }}">
@@ -140,8 +142,8 @@
 
 {{-- ── Per-worker cards ────────────────────────────────────── --}}
 @php
-    $grouped = $staffStats->groupBy('department');
-    $deptOrder = ['design', 'print', 'sew'];
+    $grouped  = $staffStats->groupBy('department');
+    $deptOrder = ['design', 'print', 'sew', 'delivery'];
 @endphp
 
 @foreach($deptOrder as $dept)
@@ -156,12 +158,13 @@
     <div class="row g-3 mb-4">
         @foreach($workers as $stat)
             @php
-                $u          = $stat['user'];
-                $initials   = collect(explode(' ', $u->name))->map(fn($p) => strtoupper($p[0]))->take(2)->implode('');
-                $trendJson  = json_encode(array_values($stat['daily_trend']));
+                $u           = $stat['user'];
+                $isDelivery  = $stat['is_delivery'] ?? false;
+                $initials    = collect(explode(' ', $u->name))->map(fn($p) => strtoupper($p[0]))->take(2)->implode('');
+                $trendJson   = json_encode(array_values($stat['daily_trend']));
                 $trendLabels = json_encode(array_keys($stat['daily_trend']));
-                $canvasId   = 'trend-' . $u->id;
-                $onTimePct  = $stat['on_time_pct'];
+                $canvasId    = 'trend-' . $u->id;
+                $onTimePct   = $stat['on_time_pct'];
             @endphp
             <div class="col-12 col-lg-6">
                 <div class="card worker-card shadow-sm h-100">
@@ -201,7 +204,7 @@
                         <div class="row g-2 text-center mb-3">
                             <div class="col-3">
                                 <div class="metric-value text-primary">{{ $stat['orders_completed'] }}</div>
-                                <div class="metric-label">Completed</div>
+                                <div class="metric-label">{{ $isDelivery ? 'Delivered' : 'Completed' }}</div>
                             </div>
                             <div class="col-3">
                                 <div class="metric-value text-success">{{ number_format($stat['units_completed']) }}</div>
@@ -214,10 +217,15 @@
                                 <div class="metric-label">Late</div>
                             </div>
                             <div class="col-3">
-                                <div class="metric-value {{ $stat['overtime_count'] > 0 ? 'text-warning' : 'text-muted' }}">
-                                    {{ $stat['overtime_count'] }}
-                                </div>
-                                <div class="metric-label">Overtime</div>
+                                @if($isDelivery)
+                                    <div class="metric-value text-muted">—</div>
+                                    <div class="metric-label">Overtime</div>
+                                @else
+                                    <div class="metric-value {{ $stat['overtime_count'] > 0 ? 'text-warning' : 'text-muted' }}">
+                                        {{ $stat['overtime_count'] }}
+                                    </div>
+                                    <div class="metric-label">Overtime</div>
+                                @endif
                             </div>
                         </div>
 
@@ -235,18 +243,21 @@
                             </div>
                         @endif
 
-                        {{-- Daily output sparkline --}}
+                        {{-- Daily trend sparkline --}}
                         @if(count($stat['daily_trend']) > 0)
                             <div>
-                                <div class="metric-label mb-1">Daily output (units)</div>
+                                <div class="metric-label mb-1">
+                                    {{ $isDelivery ? 'Daily deliveries' : 'Daily output (units)' }}
+                                </div>
                                 <canvas id="{{ $canvasId }}" class="trend-canvas w-100"
                                         data-values="{{ $trendJson }}"
-                                        data-labels="{{ $trendLabels }}">
+                                        data-labels="{{ $trendLabels }}"
+                                        data-unit="{{ $isDelivery ? 'orders' : 'units' }}">
                                 </canvas>
                             </div>
                         @else
                             <div class="text-muted text-center py-2" style="font-size:.8rem">
-                                No completions in this period
+                                No activity in this period
                             </div>
                         @endif
 
@@ -261,7 +272,7 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body text-center py-5 text-muted">
             <i class="bi bi-people fs-2 d-block mb-2"></i>
-            No production staff found. Create designer, printing manager, or sewing manager accounts first.
+            No production or delivery staff found. Create designer, printing manager, sewing manager, or delivery incharge accounts first.
         </div>
     </div>
 @endif
@@ -276,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('canvas[data-values]').forEach(function (canvas) {
         const values = JSON.parse(canvas.dataset.values);
         const labels = JSON.parse(canvas.dataset.labels);
+        const unit   = canvas.dataset.unit || 'units';
 
         // Format dates as "d M" for display
         const shortLabels = labels.map(function (d) {
@@ -301,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 plugins: { legend: { display: false }, tooltip: {
                     callbacks: {
                         title: (items) => items[0].label,
-                        label: (item)  => item.raw + ' units',
+                        label: (item)  => item.raw + ' ' + unit,
                     }
                 }},
                 scales: {

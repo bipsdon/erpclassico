@@ -63,6 +63,11 @@ class User extends Authenticatable
         return $this->role === 'sewing_manager';
     }
 
+    public function isDeliveryIncharge(): bool
+    {
+        return $this->role === 'delivery_incharge';
+    }
+
     public function hasRole(string|array $roles): bool
     {
         return in_array($this->role, (array) $roles);
@@ -78,6 +83,7 @@ class User extends Authenticatable
             'designer'          => 'Designer',
             'printing_manager'  => 'Printing Manager',
             'sewing_manager'    => 'Sewing Manager',
+            'delivery_incharge' => 'Delivery Incharge',
             default             => ucfirst($this->role),
         };
     }

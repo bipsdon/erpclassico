@@ -51,11 +51,12 @@ class PipelineNotification extends Model
     public function getTargetLabelAttribute(): string
     {
         return match ($this->target_department) {
-            'designer'         => 'Design Team',
-            'printing_manager' => 'Printing Team',
-            'sewing_manager'   => 'Sewing Team',
-            'pipeline_manager' => 'Pipeline Manager',
-            default            => 'All Departments',
+            'designer'          => 'Design Team',
+            'printing_manager'  => 'Printing Team',
+            'sewing_manager'    => 'Sewing Team',
+            'pipeline_manager'  => 'Pipeline Manager',
+            'delivery_incharge' => 'Delivery Team',
+            default             => 'All Departments',
         };
     }
 

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CapacityController;
+use App\Http\Controllers\Dashboard\DeliveryInchargeController;
 use App\Http\Controllers\Dashboard\DesignerController;
 use App\Http\Controllers\Dashboard\HistoryController;
 use App\Http\Controllers\Dashboard\PipelineManagerController;
@@ -46,9 +47,16 @@ Route::middleware('auth')->group(function () {
             'designer'         => redirect()->route('dashboard.designer'),
             'printing_manager' => redirect()->route('dashboard.printing'),
             'sewing_manager'   => redirect()->route('dashboard.sewing'),
+            'delivery_incharge'=> redirect()->route('dashboard.delivery'),
             default            => abort(403, 'Role not configured.'),
         };
     })->name('dashboard');
+
+    // Delivery Incharge
+    Route::get('/dashboard/delivery',
+        [DeliveryInchargeController::class, 'index'])
+        ->middleware('role:pipeline_manager,delivery_incharge')
+        ->name('dashboard.delivery');
 
     // Pipeline Manager — full visibility
     Route::get('/dashboard/pipeline',
@@ -123,12 +131,12 @@ Route::middleware('auth')->group(function () {
     // ─── Order exports ───────────────────────────────────────
     Route::get('/orders/{order}/export/pdf',
         [OrderController::class, 'exportPdf'])
-        ->middleware('role:pipeline_manager,designer,printing_manager,sewing_manager')
+        ->middleware('role:pipeline_manager,designer,printing_manager,sewing_manager,delivery_incharge')
         ->name('orders.export.pdf');
 
     Route::get('/orders/{order}/export/xlsx',
         [OrderController::class, 'exportXlsx'])
-        ->middleware('role:pipeline_manager,designer,printing_manager,sewing_manager')
+        ->middleware('role:pipeline_manager,designer,printing_manager,sewing_manager,delivery_incharge')
         ->name('orders.export.xlsx');
 
     Route::get('/orders/export/all-xlsx',
@@ -170,8 +178,13 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('/production/{order}/deliver',
         [ProductionController::class, 'deliver'])
-        ->middleware('role:pipeline_manager')
+        ->middleware('role:pipeline_manager,delivery_incharge')
         ->name('production.deliver');
+
+    Route::patch('/production/{order}/delivery-info',
+        [ProductionController::class, 'setDeliveryInfo'])
+        ->middleware('role:pipeline_manager')
+        ->name('production.delivery-info');
 
     // ─── Users (pipeline manager only) ───────────────────────
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update']);

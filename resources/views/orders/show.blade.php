@@ -23,18 +23,18 @@
         </a>
     @endif
 
-    @if(auth()->user()->isPipelineManager())
+    @if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
         {{-- Mark as Delivered — only when order is Ready --}}
         @if($order->stage === 'ready')
-            <form method="POST"
-                  action="{{ route('production.deliver', $order) }}"
-                  onsubmit="return confirm('Mark {{ $order->whatsapp_order_id ?? $order->order_number }} as delivered to the customer?')">
-                @csrf @method('PATCH')
-                <button class="btn btn-sm btn-success">
-                    <i class="bi bi-truck me-1"></i>Mark as Delivered
-                </button>
-            </form>
+            <button type="button"
+                    class="btn btn-sm btn-success"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deliverModal">
+                <i class="bi bi-truck me-1"></i>Mark as Delivered
+            </button>
         @endif
+    @endif
+    @if(auth()->user()->isPipelineManager())
         <a href="{{ route('orders.edit', $order) }}" class="btn btn-sm btn-primary ms-auto">
             <i class="bi bi-pencil me-1"></i>Edit Order
         </a>
@@ -146,6 +146,99 @@
                 </div>
             </div>
         </div>
+
+        {{-- Delivery info card — shown when order is ready or delivered --}}
+        @if(in_array($order->stage, ['ready', 'delivered']))
+            <div class="card border-0 shadow-sm mb-4 {{ $order->stage === 'ready' ? 'border-success' : '' }}"
+                 style="{{ $order->stage === 'ready' ? 'border-left: 4px solid #198754 !important' : '' }}">
+                <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">
+                        <i class="bi bi-truck me-2 text-{{ $order->stage === 'delivered' ? 'secondary' : 'success' }}"></i>
+                        Delivery Information
+                    </span>
+                    @if($order->stage === 'ready')
+                        <span class="badge bg-success">Ready for Delivery</span>
+                    @else
+                        <span class="badge bg-secondary">Delivered</span>
+                    @endif
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Delivery Method</div>
+                            <div class="fw-semibold mt-1">
+                                @if($order->delivery_method)
+                                    <span class="badge bg-light text-dark border">{{ $order->delivery_method_label }}</span>
+                                @else
+                                    <span class="text-muted fst-italic">Not set</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Delivery Priority</div>
+                            <div class="fw-semibold mt-1">
+                                <span class="badge bg-{{ $order->delivery_priority_badge }}">
+                                    {{ ucfirst($order->delivery_priority) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        @if($order->challan_number)
+                            <div class="col-6 col-md-3">
+                                <div class="text-muted small">Challan Number</div>
+                                <div class="fw-semibold mt-1">{{ $order->challan_number }}</div>
+                            </div>
+                        @endif
+
+                        @if($order->deliveredByUser)
+                            <div class="col-6 col-md-3">
+                                <div class="text-muted small">Delivered By</div>
+                                <div class="fw-semibold mt-1">{{ $order->deliveredByUser->name }}</div>
+                            </div>
+                        @endif
+
+                        @if($order->delivery_details)
+                            <div class="col-12">
+                                <div class="text-muted small">Delivery Details</div>
+                                <div class="mt-1 p-2 rounded" style="background:#f8f9fa;font-size:.875rem;white-space:pre-wrap">{{ $order->delivery_details }}</div>
+                            </div>
+                        @endif
+
+                    </div>
+
+                    {{-- PM can edit delivery info inline --}}
+                    @if(auth()->user()->isPipelineManager() && $order->stage === 'ready')
+                        <hr class="my-3">
+                        <form method="POST" action="{{ route('production.delivery-info', $order) }}">
+                            @csrf @method('PATCH')
+                            <div class="row g-3">
+                                <div class="col-12 col-sm-5">
+                                    <label class="form-label fw-semibold" style="font-size:.825rem">Delivery Method</label>
+                                    <select name="delivery_method" class="form-select form-select-sm">
+                                        <option value="">— Select —</option>
+                                        @foreach(['pathao' => 'Pathao', 'company_delivery' => 'Company Delivery', 'bus_ma_haldine' => 'Bus Ma Haldine', 'customer_pickup' => 'Customer Pickup', 'ncm' => 'NCM'] as $val => $label)
+                                            <option value="{{ $val }}" {{ $order->delivery_method === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-7">
+                                    <label class="form-label fw-semibold" style="font-size:.825rem">Delivery Details</label>
+                                    <textarea name="delivery_details" class="form-control form-control-sm" rows="2"
+                                              placeholder="Address, contact, special instructions…">{{ $order->delivery_details }}</textarea>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-save me-1"></i>Save Delivery Info
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @endif
 
         {{-- Production pipeline progress --}}
         <div class="card border-0 shadow-sm mb-4">
@@ -444,3 +537,71 @@
 </div>
 
 @endsection
+
+{{-- ── Deliver modal ────────────────────────────────────────── --}}
+@if($order->stage === 'ready')
+@auth
+@if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
+<div class="modal fade" id="deliverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-truck me-2 text-success"></i>Mark as Delivered
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST"
+                  action="{{ route('production.deliver', $order) }}"
+                  id="deliverForm">
+                @csrf @method('PATCH')
+                <div class="modal-body pt-2">
+                    <p class="text-muted mb-3">
+                        You are about to mark order
+                        <strong>{{ $order->whatsapp_order_id ?? $order->order_number }}</strong>
+                        as delivered to <strong>{{ $order->customer_name }}</strong>.
+                    </p>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">
+                            Challan Number
+                            @if(auth()->user()->isDeliveryIncharge())
+                                <span class="text-danger">*</span>
+                            @else
+                                <small class="text-muted fw-normal">(optional for Pipeline Manager)</small>
+                            @endif
+                        </label>
+                        <input type="text"
+                               name="challan_number"
+                               id="challanInput"
+                               class="form-control"
+                               placeholder="e.g. CH-2026-001"
+                               value="{{ old('challan_number') }}"
+                               {{ auth()->user()->isDeliveryIncharge() ? 'required' : '' }}>
+                        <div class="invalid-feedback">A Challan Number is required.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-truck me-1"></i>Confirm Delivery
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@push('scripts')
+<script>
+document.getElementById('deliverForm')?.addEventListener('submit', function (e) {
+    const input = document.getElementById('challanInput');
+    if (input.required && !input.value.trim()) {
+        e.preventDefault();
+        input.classList.add('is-invalid');
+        input.focus();
+    }
+});
+</script>
+@endpush
+@endif
+@endauth
+@endif
