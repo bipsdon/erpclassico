@@ -478,8 +478,7 @@
         </span>
 
         @auth
-            {{-- Notification bell — hidden for delivery incharge (they have it in their topnav) --}}
-            @if(! auth()->user()->isDeliveryIncharge())
+            {{-- Notification bell --}}
             <a href="{{ route('notifications.inbox') }}"
                class="btn btn-sm btn-outline-secondary position-relative"
                title="Notifications">
@@ -488,21 +487,16 @@
                       class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                       style="font-size:.6rem;display:none">0</span>
             </a>
-            @endif
 
-            {{-- User dropdown — always visible for delivery incharge (no sidebar), lg+ for others --}}
-            <div class="dropdown {{ auth()->user()->isDeliveryIncharge() ? '' : 'd-none d-lg-block' }}">
+            <div class="dropdown d-none d-lg-block">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
                         data-bs-toggle="dropdown">
                     <i class="bi bi-person-circle me-1"></i>
-                    <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
+                    {{ auth()->user()->name }}
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                     <li>
                         <span class="dropdown-item-text small text-muted">
-                            {{ auth()->user()->name }}
-                        </span>
-                        <span class="dropdown-item-text small text-muted" style="font-size:.75rem">
                             {{ auth()->user()->role_label }}
                         </span>
                     </li>
