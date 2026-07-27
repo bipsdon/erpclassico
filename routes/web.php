@@ -181,6 +181,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:pipeline_manager,delivery_incharge')
         ->name('production.deliver');
 
+    Route::patch('/production/{order}/save-challan',
+        [ProductionController::class, 'saveChallan'])
+        ->middleware('role:pipeline_manager,delivery_incharge')
+        ->name('production.save-challan');
+
     Route::patch('/production/{order}/delivery-info',
         [ProductionController::class, 'setDeliveryInfo'])
         ->middleware('role:pipeline_manager')

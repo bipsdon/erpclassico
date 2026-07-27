@@ -175,9 +175,10 @@ class ProductionController extends Controller
             return back()->with('error', 'Order must be in Ready stage before it can be marked as delivered.');
         }
 
-        // Delivery Incharge must supply a challan number
-        if ($user->isDeliveryIncharge()) {
-            $validated = $request->validate([
+        // Delivery Incharge must have a challan number — either already saved or
+        // submitted right now. If neither exists, validation will fail.
+        if ($user->isDeliveryIncharge() && ! $order->challan_number) {
+            $request->validate([
                 'challan_number' => ['required', 'string', 'min:1', 'max:100'],
             ], [
                 'challan_number.required' => 'A Challan Number is required to mark this order as delivered.',
@@ -191,12 +192,16 @@ class ProductionController extends Controller
                 'delivered_by' => $user->id,
             ];
 
-            // Capture challan number if provided (required for delivery incharge, optional for PM)
+            // Use newly submitted challan, or keep the already-saved one
             if ($request->filled('challan_number')) {
                 $updateData['challan_number'] = $request->input('challan_number');
             }
 
             $order->update($updateData);
+
+            $challanNote = $order->fresh()->challan_number
+                ? ' Challan: ' . $order->fresh()->challan_number
+                : '';
 
             OrderStageLog::create([
                 'order_id'    => $order->id,
@@ -205,8 +210,7 @@ class ProductionController extends Controller
                 'from_status' => 'completed',
                 'to_status'   => 'completed',
                 'changed_by'  => $user->id,
-                'notes'       => 'Order delivered to customer.'
-                    . ($request->filled('challan_number') ? ' Challan: ' . $request->input('challan_number') : ''),
+                'notes'       => 'Order delivered to customer.' . $challanNote,
             ]);
         });
 
@@ -214,6 +218,35 @@ class ProductionController extends Controller
 
         return redirect()->back()
             ->with('success', "Order {$ref} marked as delivered.");
+    }
+
+    // ──────────────────────────────────────────────
+    // Save Challan Number independently
+    // Route: PATCH /production/{order}/save-challan
+    // ──────────────────────────────────────────────
+
+    public function saveChallan(Request $request, Order $order): RedirectResponse
+    {
+        $user = auth()->user();
+
+        abort_unless(
+            $user->isPipelineManager() || $user->isDeliveryIncharge(),
+            403
+        );
+
+        if (! in_array($order->stage, ['ready', 'delivered'])) {
+            return back()->with('error', 'Challan can only be saved for orders that are ready or delivered.');
+        }
+
+        $request->validate([
+            'challan_number' => ['required', 'string', 'min:1', 'max:100'],
+        ]);
+
+        $order->update(['challan_number' => $request->input('challan_number')]);
+
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
+        return back()->with('success', "Challan number saved for order {$ref}.");
     }
 
     // ──────────────────────────────────────────────

@@ -23,6 +23,7 @@
             --erp-topbar-height: 56px;
             --erp-brand-color: #1a3c5e;
             --erp-brand-hover: #14304e;
+            --erp-delivery-red: #dc3545;
         }
 
         /* ── Sidebar ─────────────────────────────── */
@@ -193,11 +194,39 @@
             border-radius: 999px;
             font-weight: 600;
         }
+
+        /* ── Delivery Incharge: no sidebar, full-width ── */
+        body.role-delivery-incharge #sidebar         { display: none !important; }
+        body.role-delivery-incharge #main-content    { margin-left: 0 !important; }
+        body.role-delivery-incharge #topbar          { background: var(--erp-delivery-red) !important; border-bottom-color: #b02a37 !important; }
+        body.role-delivery-incharge #topbar *        { color: #fff !important; border-color: rgba(255,255,255,.3) !important; }
+        body.role-delivery-incharge #topbar .btn     { color: #fff !important; border-color: rgba(255,255,255,.5) !important; background: transparent !important; }
+        body.role-delivery-incharge #topbar .btn:hover { background: rgba(255,255,255,.15) !important; }
+        body.role-delivery-incharge #topbar .badge   { background: rgba(255,255,255,.2) !important; color: #fff !important; border-color: rgba(255,255,255,.3) !important; }
+        body.role-delivery-incharge #topbar .dropdown-menu { background: #fff !important; }
+        body.role-delivery-incharge #topbar .dropdown-menu * { color: #212529 !important; }
+        body.role-delivery-incharge #topbar .dropdown-item.text-danger { color: #dc3545 !important; }
+
+        /* delivery topbar nav links */
+        .del-topnav { display: none; }
+        body.role-delivery-incharge .del-topnav { display: flex !important; }
+        .del-topnav a {
+            color: rgba(255,255,255,.85) !important;
+            font-size: .875rem;
+            padding: .3rem .7rem;
+            border-radius: .35rem;
+            text-decoration: none;
+            transition: background .15s;
+            white-space: nowrap;
+        }
+        .del-topnav a:hover,
+        .del-topnav a.active { background: rgba(255,255,255,.18) !important; color: #fff !important; }
+        .del-topnav a i { margin-right: .3rem; }
     </style>
 
     @stack('styles')
 </head>
-<body>
+<body class="@auth role-{{ str_replace('_', '-', auth()->user()->role ?? '') }}@endauth">
 
 {{-- ═══════════════════════════════════════════════ --}}
 {{-- SIDEBAR                                          --}}
@@ -217,32 +246,8 @@
         </li>
 
         @auth
-            @if(auth()->user()->isPipelineManager())
-                <li><span class="nav-section">Management</span></li>
-                <li class="nav-item">
-                    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
-                        <i class="bi bi-card-list"></i> All Orders
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                        <i class="bi bi-people"></i> Users
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('capacity.index') }}" class="nav-link {{ request()->routeIs('capacity.*') ? 'active' : '' }}">
-                        <i class="bi bi-sliders"></i> Capacity Settings
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('notifications.create') }}" class="nav-link {{ request()->routeIs('notifications.create') ? 'active' : '' }}">
-                        <i class="bi bi-megaphone"></i> Send Notification
-                    </a>
-                </li>
-            @endif
-
             @if(auth()->user()->isDeliveryIncharge())
-                {{-- ── Delivery Incharge: only what they need ── --}}
+                {{-- ── Delivery Incharge gets its own clean nav ── --}}
                 <li><span class="nav-section">Delivery</span></li>
                 <li class="nav-item">
                     <a href="{{ route('dashboard.delivery') }}"
@@ -265,136 +270,135 @@
                     </a>
                 </li>
             @else
+                {{-- ── All other roles ── --}}
+                @if(auth()->user()->isPipelineManager())
+                    <li><span class="nav-section">Management</span></li>
+                    <li class="nav-item">
+                        <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+                            <i class="bi bi-card-list"></i> All Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                            <i class="bi bi-people"></i> Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('capacity.index') }}" class="nav-link {{ request()->routeIs('capacity.*') ? 'active' : '' }}">
+                            <i class="bi bi-sliders"></i> Capacity Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('notifications.create') }}" class="nav-link {{ request()->routeIs('notifications.create') ? 'active' : '' }}">
+                            <i class="bi bi-megaphone"></i> Send Notification
+                        </a>
+                    </li>
+                @endif
 
-            @if(auth()->user()->isPipelineManager())
-                <li><span class="nav-section">Management</span></li>
-                <li class="nav-item">
-                    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
-                        <i class="bi bi-card-list"></i> All Orders
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                        <i class="bi bi-people"></i> Users
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('capacity.index') }}" class="nav-link {{ request()->routeIs('capacity.*') ? 'active' : '' }}">
-                        <i class="bi bi-sliders"></i> Capacity Settings
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('notifications.create') }}" class="nav-link {{ request()->routeIs('notifications.create') ? 'active' : '' }}">
-                        <i class="bi bi-megaphone"></i> Send Notification
-                    </a>
-                </li>
-            @endif
+                <li><span class="nav-section">Production</span></li>
 
-            <li><span class="nav-section">Production</span></li>
+                @if(auth()->user()->isPrintingManager() || auth()->user()->isSewingManager() || auth()->user()->isDesigner())
+                    <li class="nav-item">
+                        <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+                            <i class="bi bi-card-list"></i> All Orders
+                        </a>
+                    </li>
+                @endif
 
-            @if(auth()->user()->isPrintingManager() || auth()->user()->isSewingManager() || auth()->user()->isDesigner())
-                <li class="nav-item">
-                    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
-                        <i class="bi bi-card-list"></i> All Orders
-                    </a>
-                </li>
-            @endif
+                @if(auth()->user()->isPipelineManager() || auth()->user()->isDesigner())
+                    <li class="nav-item">
+                        <a href="{{ route('dashboard.designer') }}" class="nav-link {{ request()->routeIs('dashboard.designer') ? 'active' : '' }}">
+                            <i class="bi bi-pencil-square"></i> Design Queue
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('dashboard.designer.performance') }}" class="nav-link {{ request()->routeIs('dashboard.designer.performance') ? 'active' : '' }}">
+                            <i class="bi bi-bar-chart-line"></i> Design Performance
+                        </a>
+                    </li>
+                @endif
 
-            @if(auth()->user()->isPipelineManager() || auth()->user()->isDesigner())
-                <li class="nav-item">
-                    <a href="{{ route('dashboard.designer') }}" class="nav-link {{ request()->routeIs('dashboard.designer') ? 'active' : '' }}">
-                        <i class="bi bi-pencil-square"></i> Design Queue
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('dashboard.designer.performance') }}" class="nav-link {{ request()->routeIs('dashboard.designer.performance') ? 'active' : '' }}">
-                        <i class="bi bi-bar-chart-line"></i> Design Performance
-                    </a>
-                </li>
-            @endif
+                @if(auth()->user()->isPipelineManager() || auth()->user()->isPrintingManager())
+                    <li class="nav-item">
+                        <a href="{{ route('dashboard.printing') }}" class="nav-link {{ request()->routeIs('dashboard.printing') ? 'active' : '' }}">
+                            <i class="bi bi-printer"></i> Print Queue
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('dashboard.printing.performance') }}" class="nav-link {{ request()->routeIs('dashboard.printing.performance') ? 'active' : '' }}">
+                            <i class="bi bi-bar-chart-line"></i> Print Performance
+                        </a>
+                    </li>
+                @endif
 
-            @if(auth()->user()->isPipelineManager() || auth()->user()->isPrintingManager())
-                <li class="nav-item">
-                    <a href="{{ route('dashboard.printing') }}" class="nav-link {{ request()->routeIs('dashboard.printing') ? 'active' : '' }}">
-                        <i class="bi bi-printer"></i> Print Queue
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('dashboard.printing.performance') }}" class="nav-link {{ request()->routeIs('dashboard.printing.performance') ? 'active' : '' }}">
-                        <i class="bi bi-bar-chart-line"></i> Print Performance
-                    </a>
-                </li>
-            @endif
+                @if(auth()->user()->isPipelineManager() || auth()->user()->isSewingManager())
+                    <li class="nav-item">
+                        <a href="{{ route('dashboard.sewing') }}" class="nav-link {{ request()->routeIs('dashboard.sewing') ? 'active' : '' }}">
+                            <i class="bi bi-scissors"></i> Sewing Queue
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('dashboard.sewing.performance') }}" class="nav-link {{ request()->routeIs('dashboard.sewing.performance') ? 'active' : '' }}">
+                            <i class="bi bi-bar-chart-line"></i> Sewing Performance
+                        </a>
+                    </li>
+                @endif
 
-            @if(auth()->user()->isPipelineManager() || auth()->user()->isSewingManager())
+                <li><span class="nav-section">Reports</span></li>
+
+                @if(auth()->user()->isPipelineManager())
+                    <li class="nav-item">
+                        <a href="{{ route('history.index', ['department' => 'all']) }}"
+                           class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'all' ? 'active' : '' }}">
+                            <i class="bi bi-clock-history"></i> All History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('reports.staff-performance') }}"
+                           class="nav-link {{ request()->routeIs('reports.staff-performance') ? 'active' : '' }}">
+                            <i class="bi bi-bar-chart-line"></i> Staff Performance
+                        </a>
+                    </li>
+                @endif
+
+                @if(auth()->user()->isPipelineManager() || auth()->user()->isDesigner())
+                    <li class="nav-item">
+                        <a href="{{ route('history.index', ['department' => 'design']) }}"
+                           class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'design' ? 'active' : '' }}">
+                            <i class="bi bi-pencil-square"></i> Design History
+                        </a>
+                    </li>
+                @endif
+
+                @if(auth()->user()->isPipelineManager() || auth()->user()->isPrintingManager())
+                    <li class="nav-item">
+                        <a href="{{ route('history.index', ['department' => 'print']) }}"
+                           class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'print' ? 'active' : '' }}">
+                            <i class="bi bi-printer"></i> Print History
+                        </a>
+                    </li>
+                @endif
+
+                @if(auth()->user()->isPipelineManager() || auth()->user()->isSewingManager())
+                    <li class="nav-item">
+                        <a href="{{ route('history.index', ['department' => 'sew']) }}"
+                           class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'sew' ? 'active' : '' }}">
+                            <i class="bi bi-scissors"></i> Sewing History
+                        </a>
+                    </li>
+                @endif
+
+                <li><span class="nav-section">Messages</span></li>
                 <li class="nav-item">
-                    <a href="{{ route('dashboard.sewing') }}" class="nav-link {{ request()->routeIs('dashboard.sewing') ? 'active' : '' }}">
-                        <i class="bi bi-scissors"></i> Sewing Queue
+                    <a href="{{ route('notifications.inbox') }}"
+                       class="nav-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }} d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-bell"></i> Notifications</span>
+                        <span id="sidebar-notif-badge"
+                              class="badge bg-danger rounded-pill"
+                              style="font-size:.65rem;display:none"></span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('dashboard.sewing.performance') }}" class="nav-link {{ request()->routeIs('dashboard.sewing.performance') ? 'active' : '' }}">
-                        <i class="bi bi-bar-chart-line"></i> Sewing Performance
-                    </a>
-                </li>
-            @endif
-
-            <li><span class="nav-section">Reports</span></li>
-
-            @if(auth()->user()->isPipelineManager())
-                <li class="nav-item">
-                    <a href="{{ route('history.index', ['department' => 'all']) }}"
-                       class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'all' ? 'active' : '' }}">
-                        <i class="bi bi-clock-history"></i> All History
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('reports.staff-performance') }}"
-                       class="nav-link {{ request()->routeIs('reports.staff-performance') ? 'active' : '' }}">
-                        <i class="bi bi-bar-chart-line"></i> Staff Performance
-                    </a>
-                </li>
-            @endif
-
-            @if(auth()->user()->isPipelineManager() || auth()->user()->isDesigner())
-                <li class="nav-item">
-                    <a href="{{ route('history.index', ['department' => 'design']) }}"
-                       class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'design' ? 'active' : '' }}">
-                        <i class="bi bi-pencil-square"></i> Design History
-                    </a>
-                </li>
-            @endif
-
-            @if(auth()->user()->isPipelineManager() || auth()->user()->isPrintingManager())
-                <li class="nav-item">
-                    <a href="{{ route('history.index', ['department' => 'print']) }}"
-                       class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'print' ? 'active' : '' }}">
-                        <i class="bi bi-printer"></i> Print History
-                    </a>
-                </li>
-            @endif
-
-            @if(auth()->user()->isPipelineManager() || auth()->user()->isSewingManager())
-                <li class="nav-item">
-                    <a href="{{ route('history.index', ['department' => 'sew']) }}"
-                       class="nav-link {{ request()->routeIs('history.*') && request()->route('department') === 'sew' ? 'active' : '' }}">
-                        <i class="bi bi-scissors"></i> Sewing History
-                    </a>
-                </li>
-            @endif
-
-            <li><span class="nav-section">Messages</span></li>
-            <li class="nav-item">
-                <a href="{{ route('notifications.inbox') }}"
-                   class="nav-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }} d-flex align-items-center justify-content-between">
-                    <span><i class="bi bi-bell"></i> Notifications</span>
-                    <span id="sidebar-notif-badge"
-                          class="badge bg-danger rounded-pill"
-                          style="font-size:.65rem;display:none"></span>
-                </a>
-            </li>
-
-            @endif {{-- end delivery_incharge else --}}
+            @endif {{-- end isDeliveryIncharge else --}}
         @endauth
 
     </ul>
@@ -440,9 +444,32 @@
         </button>
 
         {{-- Page title --}}
-        <h1 class="h5 mb-0 fw-semibold text-truncate flex-grow-1">
+        <h1 class="h5 mb-0 fw-semibold text-truncate {{ auth()->check() && auth()->user()->isDeliveryIncharge() ? 'flex-shrink-0' : 'flex-grow-1' }}">
             @yield('page-title', 'Dashboard')
         </h1>
+
+        {{-- Delivery Incharge inline nav links --}}
+        @auth
+        @if(auth()->user()->isDeliveryIncharge())
+        <nav class="del-topnav align-items-center gap-1 flex-grow-1 ms-2">
+            <a href="{{ route('dashboard.delivery') }}"
+               class="{{ request()->routeIs('dashboard.delivery') ? 'active' : '' }}">
+                <i class="bi bi-truck"></i><span class="d-none d-sm-inline">Delivery Queue</span>
+            </a>
+            <a href="{{ route('orders.index', ['stage' => 'ready']) }}"
+               class="{{ request()->is('orders*') && request('stage') === 'ready' ? 'active' : '' }}">
+                <i class="bi bi-box-seam"></i><span class="d-none d-sm-inline">Ready Orders</span>
+            </a>
+            <a href="{{ route('notifications.inbox') }}"
+               class="{{ request()->routeIs('notifications.inbox') ? 'active' : '' }} position-relative">
+                <i class="bi bi-bell"></i><span class="d-none d-sm-inline">Notifications</span>
+                <span id="topnav-notif-badge"
+                      class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                      style="background:#fff;color:var(--erp-delivery-red);font-size:.6rem;display:none">0</span>
+            </a>
+        </nav>
+        @endif
+        @endauth
 
         {{-- Date chip --}}
         <span class="badge bg-light text-secondary border d-none d-sm-inline-flex align-items-center gap-1">
@@ -558,6 +585,13 @@
             if (sideBadge) {
                 sideBadge.textContent = count;
                 sideBadge.style.display = count > 0 ? '' : 'none';
+            }
+
+            // Delivery topnav badge
+            const topNavBadge = document.getElementById('topnav-notif-badge');
+            if (topNavBadge) {
+                topNavBadge.textContent = count;
+                topNavBadge.style.display = count > 0 ? '' : 'none';
             }
         } catch (e) {}
     }
