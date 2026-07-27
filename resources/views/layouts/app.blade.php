@@ -478,6 +478,20 @@
         </span>
 
         @auth
+            {{-- Delivery Incharge: logout button next to date (no sidebar) --}}
+            @if(auth()->user()->isDeliveryIncharge())
+                <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                    @csrf
+                    <button class="btn btn-sm" style="color:#fff;border:1px solid rgba(255,255,255,.5);background:transparent"
+                            title="Sign Out">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        <span class="d-none d-sm-inline">Sign Out</span>
+                    </button>
+                </form>
+            @endif
+        @endauth
+
+        @auth
             {{-- Notification bell --}}
             <a href="{{ route('notifications.inbox') }}"
                class="btn btn-sm btn-outline-secondary position-relative"
