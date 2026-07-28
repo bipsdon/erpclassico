@@ -289,6 +289,7 @@
                                                     data-bs-target="#deliverModal"
                                                     data-order-id="{{ $order->id }}"
                                                     data-order-ref="{{ $order->whatsapp_order_id ?? $order->order_number }}"
+                                                    data-action="{{ route('production.deliver', $order) }}"
                                                     data-require-challan="{{ auth()->user()->isDeliveryIncharge() ? 'true' : 'false' }}">
                                                 <i class="bi bi-truck"></i>
                                             </button>
@@ -393,13 +394,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     modal.addEventListener('show.bs.modal', function (e) {
         const btn        = e.relatedTarget;
-        const orderId    = btn.dataset.orderId;
         const orderRef   = btn.dataset.orderRef;
         const reqChallan = btn.dataset.requireChallan === 'true';
 
-        // Set form action
-        document.getElementById('deliverForm').action =
-            '/production/' + orderId + '/deliver';
+        // Set form action from the button's data-action attribute (pre-built by Laravel)
+        document.getElementById('deliverForm').action = btn.dataset.action;
 
         // Set description
         document.getElementById('deliverModalDesc').textContent =
