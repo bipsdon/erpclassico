@@ -344,6 +344,7 @@
 {{-- ── Deliver modal ────────────────────────────────────────── --}}
 @auth
 @if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
+@push('scripts')
 <div class="modal fade" id="deliverModal" tabindex="-1" aria-labelledby="deliverModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -385,8 +386,6 @@
         </div>
     </div>
 </div>
-
-@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('deliverModal');
@@ -423,6 +422,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
-
 @endif
 @endauth

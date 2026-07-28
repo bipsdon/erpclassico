@@ -568,6 +568,7 @@
 @auth
 @if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
 @php $hasChallan = (bool) $order->challan_number; @endphp
+@push('scripts')
 <div class="modal fade" id="deliverModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -629,7 +630,6 @@
         </div>
     </div>
 </div>
-@push('scripts')
 <script>
 document.getElementById('deliverForm')?.addEventListener('submit', function (e) {
     const input = document.getElementById('challanInput');
