@@ -50,7 +50,6 @@
                             <i class="bi bi-truck me-1"></i>Mark as Delivered
                         </button>
                     @else
-                        <input type="hidden" name="challan_number" id="showChallanValue">
                         <button type="button"
                                 class="btn btn-sm btn-success"
                                 id="showDeliverBtn"
@@ -582,15 +581,8 @@
 @push('scripts')
 <script>
 document.getElementById('showDeliverBtn')?.addEventListener('click', function () {
-    const ref     = this.dataset.orderRef;
-    const challan = prompt('Enter challan number for order ' + ref + ':');
-    if (challan === null) return;
-    if (!challan.trim()) {
-        alert('Challan number is required.');
-        return;
-    }
-    document.getElementById('showChallanValue').value = challan.trim();
-    document.getElementById('showDeliverForm').submit();
+    const ref = this.dataset.orderRef;
+    alert('⚠️ Cannot deliver order ' + ref + ' — please save a challan number first using the form below.');
 });
 </script>
 @endpush

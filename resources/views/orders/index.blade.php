@@ -294,11 +294,10 @@
                                                     </button>
                                                 </form>
                                             @else
-                                                {{-- Delivery Incharge: prompt for challan, then submit --}}
+                                                {{-- Delivery Incharge: alert if no challan, then submit --}}
                                                 <form method="POST" action="{{ route('production.deliver', $order) }}"
                                                       class="d-inline deliver-form">
                                                     @csrf @method('PATCH')
-                                                    <input type="hidden" name="challan_number" class="challan-value">
                                                     <button type="button"
                                                             class="btn btn-success btn-sm deliver-btn"
                                                             title="Mark as Delivered"
@@ -364,21 +363,14 @@ document.querySelectorAll('.deliver-btn').forEach(function (btn) {
         const ref        = btn.dataset.orderRef;
         const hasChallan = btn.dataset.hasChallan === 'true';
 
-        if (hasChallan) {
-            if (confirm('Mark ' + ref + ' as delivered?')) {
-                form.submit();
-            }
+        if (!hasChallan) {
+            alert('⚠️ Cannot deliver order ' + ref + ' — please save a challan number first by opening the order.');
             return;
         }
 
-        const challan = prompt('Enter challan number for order ' + ref + ':');
-        if (challan === null) return; // cancelled
-        if (!challan.trim()) {
-            alert('Challan number is required.');
-            return;
+        if (confirm('Mark ' + ref + ' as delivered?')) {
+            form.submit();
         }
-        form.querySelector('.challan-value').value = challan.trim();
-        form.submit();
     });
 });
 </script>
