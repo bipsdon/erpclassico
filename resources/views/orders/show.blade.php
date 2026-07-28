@@ -561,75 +561,74 @@
 
 </div>
 
-@endsection
-
 {{-- ── Deliver modal ────────────────────────────────────────── --}}
 @if($order->stage === 'ready')
-@auth
-@if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
-@php $hasChallan = (bool) $order->challan_number; @endphp
-@push('scripts')
-<div class="modal fade" id="deliverModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-semibold">
-                    <i class="bi bi-truck me-2 text-success"></i>Mark as Delivered
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    @if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
+        @php $hasChallan = (bool) $order->challan_number; @endphp
+        <div class="modal fade" id="deliverModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-semibold">
+                            <i class="bi bi-truck me-2 text-success"></i>Mark as Delivered
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST"
+                          action="{{ route('production.deliver', $order) }}"
+                          id="deliverForm">
+                        @csrf @method('PATCH')
+                        <div class="modal-body pt-2">
+                            <p class="text-muted mb-3" style="font-size:.875rem">
+                                You are about to mark order
+                                <strong>{{ $order->whatsapp_order_id ?? $order->order_number }}</strong>
+                                as delivered to <strong>{{ $order->customer_name }}</strong>.
+                            </p>
+                            @if($hasChallan)
+                                <div class="d-flex align-items-center gap-2 p-2 rounded mb-1"
+                                     style="background:#f0fdf4;border:1px solid #bbf7d0;font-size:.875rem">
+                                    <i class="bi bi-upc-scan text-success"></i>
+                                    Challan: <strong>{{ $order->challan_number }}</strong>
+                                </div>
+                                <p class="text-muted mb-0" style="font-size:.78rem">
+                                    Challan number is already saved. Click confirm to complete delivery.
+                                </p>
+                            @else
+                                <div class="mb-1">
+                                    <label class="form-label fw-semibold" style="font-size:.875rem">
+                                        Challan Number
+                                        @if(auth()->user()->isDeliveryIncharge())
+                                            <span class="text-danger">*</span>
+                                        @else
+                                            <small class="text-muted fw-normal">(optional for Pipeline Manager)</small>
+                                        @endif
+                                    </label>
+                                    <input type="text"
+                                           name="challan_number"
+                                           id="challanInput"
+                                           class="form-control"
+                                           placeholder="e.g. CH-2026-001"
+                                           {{ auth()->user()->isDeliveryIncharge() ? 'required' : '' }}>
+                                    <div class="invalid-feedback">A Challan Number is required.</div>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="bi bi-truck me-1"></i>Confirm Delivery
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <form method="POST"
-                  action="{{ route('production.deliver', $order) }}"
-                  id="deliverForm">
-                @csrf @method('PATCH')
-                <div class="modal-body pt-2">
-                    <p class="text-muted mb-3" style="font-size:.875rem">
-                        You are about to mark order
-                        <strong>{{ $order->whatsapp_order_id ?? $order->order_number }}</strong>
-                        as delivered to <strong>{{ $order->customer_name }}</strong>.
-                    </p>
-
-                    @if($hasChallan)
-                        {{-- Challan already saved — show it, no input needed --}}
-                        <div class="d-flex align-items-center gap-2 p-2 rounded mb-1"
-                             style="background:#f0fdf4;border:1px solid #bbf7d0;font-size:.875rem">
-                            <i class="bi bi-upc-scan text-success"></i>
-                            Challan: <strong>{{ $order->challan_number }}</strong>
-                        </div>
-                        <p class="text-muted mb-0" style="font-size:.78rem">
-                            Challan number is already saved. Click confirm to complete delivery.
-                        </p>
-                    @else
-                        {{-- No challan yet — delivery incharge must enter one; PM it's optional --}}
-                        <div class="mb-1">
-                            <label class="form-label fw-semibold" style="font-size:.875rem">
-                                Challan Number
-                                @if(auth()->user()->isDeliveryIncharge())
-                                    <span class="text-danger">*</span>
-                                @else
-                                    <small class="text-muted fw-normal">(optional for Pipeline Manager)</small>
-                                @endif
-                            </label>
-                            <input type="text"
-                                   name="challan_number"
-                                   id="challanInput"
-                                   class="form-control"
-                                   placeholder="e.g. CH-2026-001"
-                                   {{ auth()->user()->isDeliveryIncharge() ? 'required' : '' }}>
-                            <div class="invalid-feedback">A Challan Number is required.</div>
-                        </div>
-                    @endif
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success btn-sm">
-                        <i class="bi bi-truck me-1"></i>Confirm Delivery
-                    </button>
-                </div>
-            </form>
         </div>
-    </div>
-</div>
+    @endif
+@endif
+
+@endsection
+
+@push('scripts')
 <script>
 document.getElementById('deliverForm')?.addEventListener('submit', function (e) {
     const input = document.getElementById('challanInput');
@@ -641,6 +640,3 @@ document.getElementById('deliverForm')?.addEventListener('submit', function (e) 
 });
 </script>
 @endpush
-@endif
-@endauth
-@endif

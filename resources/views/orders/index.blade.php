@@ -339,12 +339,8 @@
     @endif
 </div>
 
-@endsection
-
-{{-- ── Deliver modal ────────────────────────────────────────── --}}
-@auth
+{{-- ── Deliver modal (inside @section so it actually renders) ── --}}
 @if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
-@push('scripts')
 <div class="modal fade" id="deliverModal" tabindex="-1" aria-labelledby="deliverModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -386,6 +382,12 @@
         </div>
     </div>
 </div>
+@endif
+
+@endsection
+
+@push('scripts')
+@if(auth()->user()->isPipelineManager() || auth()->user()->isDeliveryIncharge())
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('deliverModal');
@@ -396,21 +398,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const orderRef   = btn.dataset.orderRef;
         const reqChallan = btn.dataset.requireChallan === 'true';
 
-        // Set form action from the button's data-action attribute (pre-built by Laravel)
         document.getElementById('deliverForm').action = btn.dataset.action;
 
-        // Set description
         document.getElementById('deliverModalDesc').textContent =
             'You are about to mark order ' + orderRef + ' as delivered to the customer.';
 
-        // Toggle challan required state
         const input = document.getElementById('challanInput');
         input.value = '';
         input.classList.remove('is-invalid');
         input.required = reqChallan;
     });
 
-    // Client-side validation before submit
     document.getElementById('deliverForm').addEventListener('submit', function (e) {
         const input = document.getElementById('challanInput');
         if (input.required && !input.value.trim()) {
@@ -421,6 +419,5 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-@endpush
 @endif
-@endauth
+@endpush
