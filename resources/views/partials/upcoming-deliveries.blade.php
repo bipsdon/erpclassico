@@ -52,7 +52,7 @@
                     </div>
                 </div>
 
-                {{-- Badges --}}
+                {{-- Badges + action --}}
                 <div class="text-end flex-shrink-0">
                     <span class="badge bg-{{ $order->priority_badge }} mb-1 d-block">
                         {{ ucfirst($order->priority) }}
@@ -60,6 +60,19 @@
                     <span class="badge bg-light text-secondary border" style="font-size:.65rem">
                         {{ $order->stage_label }}
                     </span>
+                    @if($order->stage === 'ready' && auth()->user()->isPipelineManager())
+                        <form method="POST"
+                              action="{{ route('production.deliver', $order) }}"
+                              onsubmit="return confirm('Mark {{ addslashes($order->whatsapp_order_id ?? $order->order_number) }} as delivered?')"
+                              class="mt-1">
+                            @csrf @method('PATCH')
+                            <button type="submit"
+                                    class="btn btn-sm btn-danger w-100"
+                                    style="font-size:.7rem;padding:.2rem .5rem">
+                                <i class="bi bi-truck me-1"></i>Deliver
+                            </button>
+                        </form>
+                    @endif
                 </div>
 
             </div>
