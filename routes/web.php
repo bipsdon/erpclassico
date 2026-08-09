@@ -191,6 +191,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:pipeline_manager')
         ->name('production.delivery-info');
 
+    Route::patch('/production/{department}/{order}/reorder',
+        [ProductionController::class, 'reorder'])
+        ->middleware('role:pipeline_manager')
+        ->name('production.reorder');
+
     // ─── Users (pipeline manager only) ───────────────────────
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update']);
     Route::patch('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])

@@ -91,6 +91,10 @@
         <i class="bi bi-clock-history me-1"></i>Design History
     </a>
 </div>
+
+{{-- ── Do This Next banner ─────────────────────────────── --}}
+@include('partials.do-this-next', ['queue' => $queue])
+
 <div class="row g-4">
 
     {{-- Today's Design Queue --}}

@@ -5,15 +5,17 @@
         $title            string (optional)
         $icon             string Bootstrap icon class (optional)
         $showCompletedBtn bool (optional, default false)
+        $showWhatsappPrimary bool (optional, default true)
 --}}
 
 @php
-    $title            ??= $queue->departmentLabel() . ' Queue';
-    $icon             ??= 'bi-list-task';
-    $showCompletedBtn ??= false;
+    $title               ??= $queue->departmentLabel() . ' Queue';
+    $icon                ??= 'bi-list-task';
+    $showCompletedBtn    ??= false;
     $showWhatsappPrimary ??= true;
-    $health           = $queue->healthSummary();
-    $loadPct          = $queue->loadPercent();
+    $isPM                  = auth()->check() && auth()->user()->isPipelineManager();
+    $health                = $queue->healthSummary();
+    $loadPct               = $queue->loadPercent();
 @endphp
 
 <div class="card shadow-sm border-0">
@@ -59,7 +61,6 @@
                     </span>
                 @endif
             </div>
-            {{-- Two-segment bar: normal (green) + overtime (striped warning) --}}
             <div class="progress" style="height:12px;border-radius:6px">
                 <div class="progress-bar bg-{{ $queue->utilisationColour() }}"
                      role="progressbar"
@@ -119,18 +120,32 @@
                             <th class="text-center sort-th" data-col="4">Qty</th>
                             <th class="text-center sort-th" data-col="5">Load</th>
                             <th class="text-center sort-th" data-col="6">Priority</th>
-                            <th class="text-center sort-th" data-col="7">Delivery</th>
+                            <th class="text-center sort-th" data-col="7">Deadline</th>
                             <th class="text-center sort-th" data-col="8">Status</th>
-                            @if($showCompletedBtn)
-                                <th class="text-center pe-3">Action</th>
+                            @if($showCompletedBtn || $isPM)
+                                <th class="text-center pe-3">Actions</th>
                             @endif
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($queue->orders as $i => $order)
-                            <tr class="{{ $order->isLate ? 'table-danger' : '' }}">
-                                <td class="ps-3 text-muted" style="font-size:.8rem" data-val="{{ $i + 1 }}">{{ $i + 1 }}</td>
+                            @php
+                                $rowClass = '';
+                                if ($order->isPinned())         $rowClass = 'table-primary';
+                                elseif ($order->isLate)         $rowClass = 'table-danger';
+                                elseif ($order->daysUntilDelivery === 0) $rowClass = 'table-warning';
+                            @endphp
+                            <tr class="{{ $rowClass }}">
+                                {{-- # --}}
+                                <td class="ps-3 text-muted" style="font-size:.8rem" data-val="{{ $i + 1 }}">
+                                    @if($order->isPinned())
+                                        <i class="bi bi-pin-angle-fill text-primary" title="Pinned by Pipeline Manager" style="font-size:.8rem"></i>
+                                    @else
+                                        {{ $i + 1 }}
+                                    @endif
+                                </td>
 
+                                {{-- Order ref --}}
                                 <td data-val="{{ $order->whatsappOrderId ?? $order->orderNumber }}">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="health-dot bg-{{ $order->healthBadge() }}"></span>
@@ -152,10 +167,7 @@
                                                 <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">OT</span>
                                             @endif
                                             @if($showWhatsappPrimary)
-                                                {{-- Show system number small beneath for reference --}}
-                                                <div class="text-muted mt-1" style="font-size:.68rem">
-                                                    {{ $order->orderNumber }}
-                                                </div>
+                                                <div class="text-muted mt-1" style="font-size:.68rem">{{ $order->orderNumber }}</div>
                                             @elseif($order->whatsappOrderId)
                                                 <div class="text-muted mt-1" style="font-size:.72rem">
                                                     <i class="bi bi-whatsapp text-success me-1"></i>{{ $order->whatsappOrderId }}
@@ -165,25 +177,27 @@
                                     </div>
                                 </td>
 
+                                {{-- Customer --}}
                                 <td style="font-size:.875rem" data-val="{{ $order->customerName }}">
                                     <div class="d-flex align-items-center gap-2">
-                                        <x-order-avatar
-                                            :url="$order->profilePictureUrl"
-                                            :initials="$order->avatarInitials"
-                                            :size="30"
-                                        />
+                                        <x-order-avatar :url="$order->profilePictureUrl" :initials="$order->avatarInitials" :size="30"/>
                                         {{ $order->customerName }}
                                     </div>
                                 </td>
 
+                                {{-- Product --}}
                                 <td class="text-center" data-val="{{ $order->productTypeLabel }}">
                                     <span class="badge bg-light text-secondary border" style="font-size:.72rem">
                                         {{ $order->productTypeLabel }}
                                     </span>
                                 </td>
 
-                                <td class="text-center fw-semibold" data-val="{{ $order->quantity }}">{{ number_format($order->quantity) }}</td>
+                                {{-- Qty --}}
+                                <td class="text-center fw-semibold" data-val="{{ $order->quantity }}">
+                                    {{ number_format($order->quantity) }}
+                                </td>
 
+                                {{-- Load --}}
                                 <td class="text-center" data-val="{{ $order->dayPercent() }}">
                                     @if($order->dayFraction > 0)
                                         <span class="badge bg-{{ $order->dayPercent() > 100 ? 'warning text-dark' : 'light text-secondary border' }}"
@@ -195,31 +209,30 @@
                                     @endif
                                 </td>
 
+                                {{-- Priority --}}
                                 <td class="text-center" data-val="{{ ['critical'=>0,'rush'=>1,'normal'=>2][$order->priority] ?? 9 }}">
                                     <span class="badge bg-{{ $order->priorityBadge() }}">
                                         {{ ucfirst($order->priority) }}
                                     </span>
                                 </td>
 
+                                {{-- Deadline — urgency countdown --}}
                                 <td class="text-center" data-val="{{ $order->deliveryDate }}">
                                     <div style="font-size:.8rem">
                                         {{ \Carbon\Carbon::parse($order->deliveryDate)->format('d M') }}
                                     </div>
-                                    <span class="days-chip ms-1
+                                    <span class="days-chip mt-1
                                         @if($order->daysUntilDelivery < 0) bg-danger text-white
-                                        @elseif($order->daysUntilDelivery <= 1) bg-warning text-dark
+                                        @elseif($order->daysUntilDelivery === 0) bg-danger text-white
+                                        @elseif($order->daysUntilDelivery === 1) bg-warning text-dark
                                         @else bg-light text-secondary border
-                                        @endif">
-                                        @if($order->daysUntilDelivery < 0)
-                                            {{ abs($order->daysUntilDelivery) }}d late
-                                        @elseif($order->daysUntilDelivery === 0)
-                                            Today
-                                        @else
-                                            {{ $order->daysUntilDelivery }}d
-                                        @endif
+                                        @endif"
+                                        style="font-size:.7rem;font-weight:600">
+                                        {{ $order->urgencyLabel() }}
                                     </span>
                                 </td>
 
+                                {{-- Status --}}
                                 <td class="text-center" data-val="{{ $order->orderStatus }}">
                                     @php
                                         $statusBadge = match($order->orderStatus) {
@@ -235,32 +248,73 @@
                                     </span>
                                 </td>
 
-                            @if($showCompletedBtn)
+                                {{-- Actions --}}
+                                @if($showCompletedBtn || $isPM)
                                     <td class="text-center pe-3">
-                                        <div class="d-flex gap-1 justify-content-center">
-                                            {{-- Start button — only when status is pending --}}
-                                            @if(in_array($order->orderStatus ?? 'pending', ['pending', 'on_hold']))
+                                        <div class="d-flex gap-1 justify-content-center flex-wrap">
+
+                                            {{-- Start / Done buttons (department workers + PM) --}}
+                                            @if($showCompletedBtn)
+                                                @if(in_array($order->orderStatus ?? 'pending', ['pending', 'on_hold']))
+                                                    <form method="POST"
+                                                          action="{{ route('production.start', ['department' => $order->department, 'orderId' => $order->orderId]) }}">
+                                                        @csrf @method('PATCH')
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Start">
+                                                            <i class="bi bi-play-fill"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
                                                 <form method="POST"
-                                                      action="{{ route('production.start', ['department' => $order->department, 'orderId' => $order->orderId]) }}">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button type="submit"
-                                                            class="btn btn-sm btn-outline-primary"
-                                                            title="Mark as In Progress">
-                                                        <i class="bi bi-play-fill"></i>
+                                                      action="{{ route('production.complete', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
+                                                      onsubmit="return confirm('Mark {{ addslashes($order->whatsappOrderId ?? $order->orderNumber) }} as completed in {{ $queue->departmentLabel() }}?')">
+                                                    @csrf @method('PATCH')
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Mark done">
+                                                        <i class="bi bi-check2"></i> Done
                                                     </button>
                                                 </form>
                                             @endif
-                                            {{-- Done button --}}
-                                            <form method="POST"
-                                                  action="{{ route('production.complete', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
-                                                  onsubmit="return confirm('Mark {{ $order->whatsappOrderId ?? $order->orderNumber }} as completed in {{ $queue->departmentLabel() }}?')">
-                                                @csrf
-                                                @method('PATCH')
-                                                <button type="submit" class="btn btn-sm btn-outline-success">
-                                                    <i class="bi bi-check2"></i> Done
-                                                </button>
-                                            </form>
+
+                                            {{-- PM reorder buttons --}}
+                                            @if($isPM)
+                                                <div class="btn-group btn-group-sm" title="Reorder">
+                                                    {{-- Move up --}}
+                                                    <form method="POST"
+                                                          action="{{ route('production.reorder', ['department' => $order->department, 'order' => $order->orderId]) }}">
+                                                        @csrf @method('PATCH')
+                                                        <input type="hidden" name="action" value="move_up">
+                                                        <button type="submit"
+                                                                class="btn btn-sm btn-outline-secondary"
+                                                                title="Move up in queue">
+                                                            <i class="bi bi-arrow-up"></i>
+                                                        </button>
+                                                    </form>
+                                                    {{-- Move down / unpin --}}
+                                                    <form method="POST"
+                                                          action="{{ route('production.reorder', ['department' => $order->department, 'order' => $order->orderId]) }}">
+                                                        @csrf @method('PATCH')
+                                                        <input type="hidden" name="action" value="move_down">
+                                                        <button type="submit"
+                                                                class="btn btn-sm btn-outline-secondary"
+                                                                title="{{ $order->isPinned() ? 'Move down (unpin if last)' : 'Move down' }}">
+                                                            <i class="bi bi-arrow-down"></i>
+                                                        </button>
+                                                    </form>
+                                                    {{-- Unpin (only shown when pinned) --}}
+                                                    @if($order->isPinned())
+                                                        <form method="POST"
+                                                              action="{{ route('production.reorder', ['department' => $order->department, 'order' => $order->orderId]) }}">
+                                                            @csrf @method('PATCH')
+                                                            <input type="hidden" name="action" value="unpin">
+                                                            <button type="submit"
+                                                                    class="btn btn-sm btn-outline-primary"
+                                                                    title="Remove pin — return to auto-sort">
+                                                                <i class="bi bi-pin-angle"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
+                                            @endif
+
                                         </div>
                                     </td>
                                 @endif

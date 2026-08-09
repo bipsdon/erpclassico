@@ -36,6 +36,7 @@ final class ScheduledOrderDTO
         public readonly string  $healthStatus,
         public readonly bool    $isLate,
         public readonly float   $dayFraction,
+        public readonly ?int    $queuePosition = null,
     ) {}
 
     public static function fromOrder(
@@ -43,6 +44,7 @@ final class ScheduledOrderDTO
         string $department,
         string $scheduledDate,
         bool   $isOvertime,
+        ?int   $queuePosition = null,
     ): self {
         $days = (int) now()->startOfDay()
             ->diffInDays(\Illuminate\Support\Carbon::parse($order->delivery_date), false);
@@ -70,6 +72,7 @@ final class ScheduledOrderDTO
             healthStatus:       self::deriveHealth($order->priority, $days),
             isLate:             $days < 0 && $order->stage !== 'delivered',
             dayFraction:        $dayFraction,
+            queuePosition:      $queuePosition,
         );
     }
 
@@ -105,6 +108,37 @@ final class ScheduledOrderDTO
             'critical' => 'danger',
             'rush'     => 'warning',
             default    => 'secondary',
+        };
+    }
+
+    public function isPinned(): bool
+    {
+        return $this->queuePosition !== null;
+    }
+
+    /**
+     * Human-readable urgency string for worker dashboards.
+     * e.g. "Due today", "Due tomorrow", "3 days left", "2 days LATE"
+     */
+    public function urgencyLabel(): string
+    {
+        if ($this->daysUntilDelivery < 0) {
+            return abs($this->daysUntilDelivery) . 'd LATE';
+        }
+        return match ($this->daysUntilDelivery) {
+            0       => 'Due today',
+            1       => 'Due tomorrow',
+            default => $this->daysUntilDelivery . ' days left',
+        };
+    }
+
+    public function urgencyColour(): string
+    {
+        if ($this->daysUntilDelivery < 0) return 'danger';
+        return match ($this->daysUntilDelivery) {
+            0       => 'danger',
+            1       => 'warning',
+            default => 'success',
         };
     }
 

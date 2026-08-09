@@ -161,6 +161,10 @@
         <i class="bi bi-clock-history me-1"></i>Sewing History
     </a>
 </div>
+
+{{-- ── Do This Next banner ─────────────────────────────── --}}
+@include('partials.do-this-next', ['queue' => $queue])
+
 <div class="row g-4">
 
     <div class="col-12 col-xl-8">

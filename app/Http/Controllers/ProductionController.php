@@ -250,6 +250,85 @@ class ProductionController extends Controller
     }
 
     // ──────────────────────────────────────────────
+    // PM queue position override — all departments
+    // Route: PATCH /production/{department}/{order}/reorder
+    // ──────────────────────────────────────────────
+
+    public function reorder(Request $request, string $department, Order $order): RedirectResponse
+    {
+        abort_unless(in_array($department, self::VALID_DEPARTMENTS, true), 404);
+        abort_unless(auth()->user()->isPipelineManager(), 403);
+
+        $validated = $request->validate([
+            'action' => ['required', 'in:pin_top,unpin,move_up,move_down'],
+        ]);
+
+        $schedule = \App\Models\ProductionSchedule::where('order_id', $order->id)
+            ->where('department', $department)
+            ->firstOrFail();
+
+        switch ($validated['action']) {
+            case 'pin_top':
+                // Give it position 1; bump everything else that was 1 down by 1
+                \App\Models\ProductionSchedule::where('department', $department)
+                    ->whereNotNull('queue_position')
+                    ->where('order_id', '!=', $order->id)
+                    ->increment('queue_position');
+                $schedule->update(['queue_position' => 1]);
+                break;
+
+            case 'unpin':
+                $schedule->update(['queue_position' => null]);
+                break;
+
+            case 'move_up':
+                if ($schedule->queue_position === null) {
+                    // Not pinned yet — pin it at top
+                    \App\Models\ProductionSchedule::where('department', $department)
+                        ->whereNotNull('queue_position')
+                        ->increment('queue_position');
+                    $schedule->update(['queue_position' => 1]);
+                } else {
+                    $above = \App\Models\ProductionSchedule::where('department', $department)
+                        ->whereNotNull('queue_position')
+                        ->where('queue_position', '<', $schedule->queue_position)
+                        ->orderByDesc('queue_position')
+                        ->first();
+
+                    if ($above) {
+                        $temp = $above->queue_position;
+                        $above->update(['queue_position' => $schedule->queue_position]);
+                        $schedule->update(['queue_position' => $temp]);
+                    }
+                }
+                break;
+
+            case 'move_down':
+                if ($schedule->queue_position !== null) {
+                    $below = \App\Models\ProductionSchedule::where('department', $department)
+                        ->whereNotNull('queue_position')
+                        ->where('queue_position', '>', $schedule->queue_position)
+                        ->orderBy('queue_position')
+                        ->first();
+
+                    if ($below) {
+                        $temp = $below->queue_position;
+                        $below->update(['queue_position' => $schedule->queue_position]);
+                        $schedule->update(['queue_position' => $temp]);
+                    } else {
+                        // Bottom of pinned list — unpin it
+                        $schedule->update(['queue_position' => null]);
+                    }
+                }
+                break;
+        }
+
+        SchedulingService::clearScheduleCache();
+
+        return back()->with('success', 'Queue order updated.');
+    }
+
+    // ──────────────────────────────────────────────
     // Set delivery info (method + details) — PM only
     // Route: PATCH /production/{order}/delivery-info
     // ──────────────────────────────────────────────

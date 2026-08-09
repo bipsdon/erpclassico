@@ -14,6 +14,7 @@ class ProductionSchedule extends Model
         'scheduled_date',
         'quantity_scheduled',
         'is_overtime',
+        'queue_position',
         'completed_at',
         'completed_by',
     ];

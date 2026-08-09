@@ -261,6 +261,7 @@ class SchedulingService
                 department:    $department,
                 scheduledDate: $dateString,
                 isOvertime:    $slot->is_overtime,
+                queuePosition: $slot->queue_position,
             );
 
             $dtoList[] = $dto;
@@ -272,6 +273,15 @@ class SchedulingService
         }
 
         usort($dtoList, static function (ScheduledOrderDTO $a, ScheduledOrderDTO $b): int {
+            // 1. Pinned orders first, sorted by their position number
+            $aPin = $a->queuePosition;
+            $bPin = $b->queuePosition;
+
+            if ($aPin !== null && $bPin !== null) return $aPin <=> $bPin;
+            if ($aPin !== null) return -1; // a is pinned, b is not → a first
+            if ($bPin !== null) return 1;  // b is pinned, a is not → b first
+
+            // 2. Auto-sort: priority then delivery date
             $rank = ['critical' => 0, 'rush' => 1, 'normal' => 2];
             $diff = ($rank[$a->priority] ?? 9) - ($rank[$b->priority] ?? 9);
 
