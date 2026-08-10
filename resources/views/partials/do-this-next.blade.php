@@ -7,7 +7,11 @@
 --}}
 
 @php
-    $next = $queue->orders[0] ?? null;
+    // Skip orders already in progress (another designer is on them)
+    // and find the first one still waiting to be picked up.
+    $next = collect($queue->orders)->first(
+        fn($o) => !in_array($o->orderStatus, ['in_progress', 'completed'])
+    );
 @endphp
 
 @if($next)
