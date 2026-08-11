@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Schedule\GanttController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CapacityController;
 use App\Http\Controllers\Dashboard\DeliveryInchargeController;
@@ -195,6 +196,11 @@ Route::middleware('auth')->group(function () {
         [ProductionController::class, 'reorder'])
         ->middleware('role:pipeline_manager')
         ->name('production.reorder');
+
+    // ─── Gantt / Schedule view ───────────────────────────────
+    Route::get('/schedule/gantt', [GanttController::class, 'index'])
+        ->middleware('role:pipeline_manager,designer')
+        ->name('schedule.gantt');
 
     // ─── Users (pipeline manager only) ───────────────────────
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update']);

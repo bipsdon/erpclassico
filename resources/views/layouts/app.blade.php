@@ -293,6 +293,11 @@
                             <i class="bi bi-megaphone"></i> Send Notification
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ route('schedule.gantt') }}" class="nav-link {{ request()->routeIs('schedule.gantt') ? 'active' : '' }}">
+                            <i class="bi bi-bar-chart-steps"></i> Production Gantt
+                        </a>
+                    </li>
                 @endif
 
                 <li><span class="nav-section">Production</span></li>
@@ -316,6 +321,13 @@
                             <i class="bi bi-bar-chart-line"></i> Design Performance
                         </a>
                     </li>
+                    @if(auth()->user()->isDesigner())
+                    <li class="nav-item">
+                        <a href="{{ route('schedule.gantt') }}" class="nav-link {{ request()->routeIs('schedule.gantt') ? 'active' : '' }}">
+                            <i class="bi bi-bar-chart-steps"></i> Deadline View
+                        </a>
+                    </li>
+                    @endif
                 @endif
 
                 @if(auth()->user()->isPipelineManager() || auth()->user()->isPrintingManager())
