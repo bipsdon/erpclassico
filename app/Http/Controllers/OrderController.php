@@ -288,6 +288,66 @@ class OrderController extends Controller
     }
 
     // ──────────────────────────────────────────────
+    // Trash (soft-deleted orders)
+    // ──────────────────────────────────────────────
+
+    public function trash(Request $request): View
+    {
+        $this->authorizeManager();
+
+        $query = Order::onlyTrashed()
+            ->with('creator')
+            ->withCount('players');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('whatsapp_order_id', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_phone', 'like', "%{$search}%");
+            });
+        }
+
+        $orders = $query->orderByDesc('deleted_at')->paginate(25)->withQueryString();
+
+        return view('orders.trash', compact('orders'));
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $this->authorizeManager();
+
+        $order = Order::onlyTrashed()->findOrFail($id);
+        $order->restore();
+
+        SchedulingService::clearScheduleCache();
+
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
+        return redirect()->route('orders.trash')
+            ->with('success', "Order {$ref} restored successfully.");
+    }
+
+    public function forceDelete(int $id): RedirectResponse
+    {
+        $this->authorizeManager();
+
+        $order = Order::onlyTrashed()->findOrFail($id);
+
+        // Permanently delete attachments from disk
+        foreach ($order->attachments as $attachment) {
+            Storage::disk('private')->delete($attachment->file_path);
+        }
+
+        $order->forceDelete();
+
+        $ref = $order->whatsapp_order_id ?? $order->order_number;
+
+        return redirect()->route('orders.trash')
+            ->with('success', "Order {$ref} permanently deleted.");
+    }
+
+    // ──────────────────────────────────────────────
     // Exports
     // ──────────────────────────────────────────────
 

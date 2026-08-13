@@ -121,6 +121,23 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:pipeline_manager')
         ->name('orders.export.all-xlsx');
 
+    // ─── Trash must be declared BEFORE Route::resource so that
+    //     /orders/trash is not swallowed by the {order} wildcard.
+    Route::get('/orders/trash',
+        [OrderController::class, 'trash'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.trash');
+
+    Route::patch('/orders/{id}/restore',
+        [OrderController::class, 'restore'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.restore');
+
+    Route::delete('/orders/{id}/force-delete',
+        [OrderController::class, 'forceDelete'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.force-delete');
+
     Route::resource('orders', OrderController::class);
 
     // ─── Order duplicate ─────────────────────────────────────
@@ -139,16 +156,6 @@ Route::middleware('auth')->group(function () {
         [OrderController::class, 'exportXlsx'])
         ->middleware('role:pipeline_manager,designer,printing_manager,sewing_manager,delivery_incharge')
         ->name('orders.export.xlsx');
-
-    Route::get('/orders/export/all-xlsx',
-        [OrderController::class, 'exportAllXlsx'])
-        ->middleware('role:pipeline_manager')
-        ->name('orders.export.all-xlsx');
-
-    Route::get('/orders/export/all-xlsx',
-        [OrderController::class, 'exportAllXlsx'])
-        ->middleware('role:pipeline_manager')
-        ->name('orders.export.all-xlsx');
 
     // ─── Quill editor image upload ────────────────────────────
     Route::post('/orders/editor-image', [\App\Http\Controllers\OrderImageController::class, 'store'])

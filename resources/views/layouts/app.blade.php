@@ -274,8 +274,13 @@
                 @if(auth()->user()->isPipelineManager())
                     <li><span class="nav-section">Management</span></li>
                     <li class="nav-item">
-                        <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+                        <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') && !request()->routeIs('orders.trash') ? 'active' : '' }}">
                             <i class="bi bi-card-list"></i> All Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('orders.trash') }}" class="nav-link {{ request()->routeIs('orders.trash') ? 'active' : '' }}">
+                            <i class="bi bi-trash3"></i> Deleted Orders
                         </a>
                     </li>
                     <li class="nav-item">
