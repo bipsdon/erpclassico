@@ -421,9 +421,14 @@ class OrderController extends Controller
     {
         abort_if($attachment->order_id !== $order->id, 404);
 
-        return Storage::disk('private')->download(
-            $attachment->file_path,
-            $attachment->original_name
+        $fullPath = Storage::disk('private')->path($attachment->file_path);
+
+        abort_unless(file_exists($fullPath), 404);
+
+        return response()->download(
+            $fullPath,
+            $attachment->original_name,
+            ['Content-Type' => $attachment->mime_type]
         );
     }
 
@@ -489,13 +494,11 @@ class OrderController extends Controller
 
         foreach ($request->file('attachments') as $file) {
             $storedName = Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path       = "attachments/{$order->id}/{$storedName}";
+            $directory  = "attachments/{$order->id}";
+            $path       = $directory . '/' . $storedName;
 
-            Storage::disk('private')->putFileAs(
-                "attachments/{$order->id}",
-                $file,
-                $storedName
-            );
+            // storeAs streams the upload directly to disk — no full memory buffer.
+            $file->storeAs($directory, $storedName, ['disk' => 'private']);
 
             OrderAttachment::create([
                 'order_id'      => $order->id,

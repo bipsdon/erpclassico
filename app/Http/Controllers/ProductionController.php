@@ -263,13 +263,20 @@ class ProductionController extends Controller
             'action' => ['required', 'in:pin_top,unpin,move_up,move_down'],
         ]);
 
-        $schedule = \App\Models\ProductionSchedule::where('order_id', $order->id)
-            ->where('department', $department)
-            ->firstOrFail();
+        // For design (uncapped), a ProductionSchedule row may not exist yet.
+        // Create it on-the-fly so pinning always works.
+        $schedule = \App\Models\ProductionSchedule::firstOrCreate(
+            ['order_id' => $order->id, 'department' => $department],
+            [
+                'scheduled_date'     => now()->toDateString(),
+                'quantity_scheduled' => $order->quantity,
+                'is_overtime'        => false,
+                'queue_position'     => null,
+            ]
+        );
 
         switch ($validated['action']) {
             case 'pin_top':
-                // Give it position 1; bump everything else that was 1 down by 1
                 \App\Models\ProductionSchedule::where('department', $department)
                     ->whereNotNull('queue_position')
                     ->where('order_id', '!=', $order->id)
@@ -283,7 +290,6 @@ class ProductionController extends Controller
 
             case 'move_up':
                 if ($schedule->queue_position === null) {
-                    // Not pinned yet — pin it at top
                     \App\Models\ProductionSchedule::where('department', $department)
                         ->whereNotNull('queue_position')
                         ->increment('queue_position');
@@ -316,7 +322,6 @@ class ProductionController extends Controller
                         $below->update(['queue_position' => $schedule->queue_position]);
                         $schedule->update(['queue_position' => $temp]);
                     } else {
-                        // Bottom of pinned list — unpin it
                         $schedule->update(['queue_position' => null]);
                     }
                 }
