@@ -29,13 +29,37 @@
         /* ── Sidebar ─────────────────────────────── */
         #sidebar {
             width: var(--erp-sidebar-width);
-            min-height: 100vh;
+            height: 100vh;
             background: var(--erp-brand-color);
             position: fixed;
             top: 0;
             left: 0;
             z-index: 1030;
             transition: transform .25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #sidebar .sidebar-nav-scroll {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+            /* thin custom scrollbar so it doesn't look clunky */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.2) transparent;
+        }
+
+        #sidebar .sidebar-nav-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #sidebar .sidebar-nav-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,.2);
+            border-radius: 2px;
+        }
+
+        #sidebar .sidebar-footer {
+            flex-shrink: 0;
         }
 
         #sidebar .sidebar-brand {
@@ -236,6 +260,7 @@
         <i class="bi bi-scissors me-2"></i> ERP Classico
     </a>
 
+    <div class="sidebar-nav-scroll">
     <ul class="nav flex-column py-2">
 
         <li class="nav-item">
@@ -301,6 +326,12 @@
                     <li class="nav-item">
                         <a href="{{ route('schedule.gantt') }}" class="nav-link {{ request()->routeIs('schedule.gantt') ? 'active' : '' }}">
                             <i class="bi bi-bar-chart-steps"></i> Production Gantt
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('dashboard.pipeline', ['pieces_date' => now()->toDateString()]) }}"
+                           class="nav-link {{ request()->routeIs('dashboard.pipeline') && request()->has('pieces_date') ? 'active' : '' }}">
+                            <i class="bi bi-stack"></i> Pieces by Date
                         </a>
                     </li>
                 @endif
@@ -419,9 +450,10 @@
         @endauth
 
     </ul>
+    </div>{{-- /sidebar-nav-scroll --}}
 
     @auth
-        <div class="mt-auto p-3 border-top border-white border-opacity-10">
+        <div class="sidebar-footer mt-auto p-3 border-top border-white border-opacity-10">
             <div class="d-flex align-items-center gap-2">
                 <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center"
                      style="width:32px;height:32px">
