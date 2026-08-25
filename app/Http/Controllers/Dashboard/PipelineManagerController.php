@@ -78,6 +78,13 @@ class PipelineManagerController extends Controller
             ->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
             ->get();
 
+        // Detailed orders due exactly on the selected date
+        $ordersOnDate = (clone $baseQuery)
+            ->whereDate('delivery_date', $selectedDate)
+            ->orderByRaw("CASE priority WHEN 'critical' THEN 0 WHEN 'rush' THEN 1 ELSE 2 END")
+            ->orderBy('order_date')
+            ->get();
+
         // Grand totals
         $totalPiecesDue  = $dueOnDate->sum('total_pieces');
         $totalPiecesLate = $lateCarryOver->sum('total_pieces');
@@ -93,6 +100,7 @@ class PipelineManagerController extends Controller
             'selectedDate',
             'dueOnDate',
             'lateCarryOver',
+            'ordersOnDate',
             'lateOrders',
             'totalPiecesDue',
             'totalPiecesLate',

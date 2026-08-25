@@ -602,6 +602,82 @@
 
     </div>
 
+    {{-- ── Orders due on selected date — detail table ────────── --}}
+    <div class="mb-4">
+        <div class="section-title">
+            <i class="bi bi-calendar-check me-2 text-success"></i>
+            Orders Due on {{ $selectedCarbon->format('d M Y') }}
+            <span class="text-muted fw-normal ms-1" style="font-size:.75rem">— {{ $ordersOnDate->count() }} order(s)</span>
+        </div>
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0 queue-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Order</th>
+                            <th>Customer</th>
+                            <th class="text-center">Type</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-center">Stage</th>
+                            <th class="text-center pe-3">Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($ordersOnDate as $order)
+                            @php
+                                $priorityBadge = match($order->priority) {
+                                    'critical' => 'danger',
+                                    'rush'     => 'warning text-dark',
+                                    default    => 'secondary',
+                                };
+                            @endphp
+                            <tr class="{{ $order->priority === 'critical' ? 'table-danger' : ($order->priority === 'rush' ? 'table-warning' : '') }}">
+                                <td class="ps-3">
+                                    <a href="{{ route('orders.show', $order->id) }}"
+                                       class="fw-semibold text-decoration-none text-dark">
+                                        {{ $order->whatsapp_order_id ?? $order->order_number }}
+                                    </a>
+                                    @if($order->whatsapp_order_id)
+                                        <div class="text-muted" style="font-size:.7rem">{{ $order->order_number }}</div>
+                                    @endif
+                                </td>
+                                <td>{{ $order->customer_name }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-secondary border" style="font-size:.72rem">
+                                        {{ $order->productTypeLabel }}
+                                    </span>
+                                </td>
+                                <td class="text-center fw-semibold">{{ number_format($order->quantity) }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ ucfirst($order->stage) }}</span>
+                                </td>
+                                <td class="text-center pe-3">
+                                    <span class="badge bg-{{ $priorityBadge }}">{{ ucfirst($order->priority) }}</span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4" style="font-size:.85rem">
+                                    <i class="bi bi-inbox d-block fs-4 mb-1"></i>
+                                    No orders due on this date
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                    @if($ordersOnDate->isNotEmpty())
+                        <tfoot class="table-light">
+                            <tr class="fw-semibold">
+                                <td class="ps-3" colspan="3">Total</td>
+                                <td class="text-center">{{ number_format($ordersOnDate->sum('quantity')) }}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    @endif
+                </table>
+            </div>
+        </div>
+    </div>
+
     {{-- ── Late orders detail table ────────────────────────────── --}}
     @if($lateOrders->isNotEmpty())
         <div class="mb-4">
