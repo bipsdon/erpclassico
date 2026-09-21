@@ -22,7 +22,7 @@
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="section-title mb-0">
         <i class="bi bi-palette me-2 text-primary"></i>Active Color Codes
-        <span class="text-muted fw-normal ms-1" style="font-size:.78rem">— {{ $active->count() }} color(s)</span>
+        <span class="text-muted fw-normal ms-1" style="font-size:.78rem">— <span id="color-count">{{ $active->count() }}</span> color(s)</span>
     </div>
 
     @if(auth()->user()->isPipelineManager())
@@ -36,7 +36,21 @@
     @endif
 </div>
 
-{{-- ── Active colors table ──────────────────────────────────────────── --}}
+{{-- ── Live search ──────────────────────────────────────────────────── --}}
+<div class="mb-3" style="max-width:340px">
+    <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+        <input type="text"
+               id="color-search"
+               class="form-control"
+               placeholder="Search by name or HEX…"
+               autocomplete="off">
+        <button class="btn btn-outline-secondary" id="color-search-clear" type="button" style="display:none" title="Clear">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+</div>
+
 <div class="card shadow-sm border-0 mb-5">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -52,9 +66,9 @@
                     <th class="text-end pe-3">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="color-table-body">
                 @forelse($active as $entry)
-                    <tr>
+                    <tr data-search="{{ strtolower($entry->name) }} {{ strtolower(ltrim($entry->hex, '#')) }}">
                         <td class="ps-3">
                             <span style="
                                 display:inline-block;
@@ -105,7 +119,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
+                    <tr id="color-empty-row">
                         <td colspan="8" class="text-center text-muted py-5">
                             <i class="bi bi-palette d-block fs-2 mb-2 opacity-25"></i>
                             No active color codes yet.
@@ -117,6 +131,15 @@
                         </td>
                     </tr>
                 @endforelse
+                {{-- shown only by JS when search has no matches --}}
+                @if($active->isNotEmpty())
+                    <tr id="color-empty-row" style="display:none">
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-search d-block fs-3 mb-1 opacity-25"></i>
+                            No colors match your search.
+                        </td>
+                    </tr>
+                @endif
             </tbody>
         </table>
     </div>
@@ -247,5 +270,45 @@
         </div>
     </div>
 @endif
+
+<script>
+(function () {
+    var searchInput  = document.getElementById('color-search');
+    var clearBtn     = document.getElementById('color-search-clear');
+    var countEl      = document.getElementById('color-count');
+    var totalCount   = parseInt(countEl ? countEl.textContent : '0');
+
+    if (!searchInput) return;
+
+    function doSearch() {
+        var q    = searchInput.value.trim().toLowerCase().replace(/^#/, '');
+        var rows = document.querySelectorAll('#color-table-body tr[data-search]');
+        var shown = 0;
+
+        rows.forEach(function (row) {
+            var hay = row.getAttribute('data-search');
+            var match = q === '' || hay.indexOf(q) !== -1;
+            row.style.display = match ? '' : 'none';
+            if (match) shown++;
+        });
+
+        if (countEl) countEl.textContent = q === '' ? totalCount : shown;
+        if (clearBtn) clearBtn.style.display = q !== '' ? '' : 'none';
+
+        // Show/hide empty-state row
+        var emptyRow = document.getElementById('color-empty-row');
+        if (emptyRow) emptyRow.style.display = (shown === 0 && q !== '') ? '' : 'none';
+    }
+
+    searchInput.addEventListener('input', doSearch);
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            doSearch();
+            searchInput.focus();
+        });
+    }
+})();
+</script>
 
 @endsection
