@@ -21,7 +21,10 @@
         letter-spacing: .3px;
     }
     /* Modal input CMYK live preview box */
-    #preview-swatch, #edit-preview-swatch, #req-preview-swatch, #req-edit-preview-swatch {
+    #preview-swatch,
+    #edit-preview-swatch,
+    #req-preview-swatch,
+    #req-edit-preview-swatch {
         width: 56px;
         height: 38px;
         border-radius: 6px;
@@ -402,7 +405,41 @@
 
 @push('scripts')
 <script>
-// ── CMYK → RGB hex helper ──────────────────────────────────
+// ── Slider ↔ number sync helpers ──────────────────────────
+// Called by oninput on the range; copies value to the number input and refreshes preview.
+function syncCmyk(fieldId) {
+    const range  = document.getElementById(fieldId + '-range');
+    const number = document.getElementById(fieldId);
+    if (!range || !number) return;
+    number.value = range.value;
+    refreshPreview(fieldId);
+}
+
+// Called by oninput on the number input; copies value to the range and refreshes preview.
+function syncCmykRange(fieldId) {
+    const range  = document.getElementById(fieldId + '-range');
+    const number = document.getElementById(fieldId);
+    if (!range || !number) return;
+    range.value = number.value;
+    refreshPreview(fieldId);
+}
+
+// Determine which modal prefix this field belongs to and refresh its swatch.
+function refreshPreview(fieldId) {
+    // fieldId examples: 'cyan', 'edit-cyan', 'req-cyan', 'req-edit-cyan'
+    // Strip the channel suffix to get the prefix.
+    const channels = ['cyan','magenta','yellow','black'];
+    let prefix = '';
+    for (const ch of channels) {
+        if (fieldId.endsWith(ch)) {
+            prefix = fieldId.slice(0, fieldId.length - ch.length);
+            break;
+        }
+    }
+    updateSwatch(prefix);
+}
+
+// ── CMYK → hex ────────────────────────────────────────────
 function cmykToHex(c, m, y, k) {
     const r = Math.round(255 * (1 - c/100) * (1 - k/100));
     const g = Math.round(255 * (1 - m/100) * (1 - k/100));
@@ -410,61 +447,52 @@ function cmykToHex(c, m, y, k) {
     return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
 }
 
-// ── Live preview for any form ──────────────────────────────
-function bindPreview(cId, mId, yId, kId, swatchId) {
-    const inputs = [cId, mId, yId, kId].map(id => document.getElementById(id));
-    const swatch = document.getElementById(swatchId);
-    if (!swatch || inputs.some(i => !i)) return;
-
-    function refresh() {
-        const [c,m,y,k] = inputs.map(i => parseInt(i.value) || 0);
-        swatch.style.background = cmykToHex(c, m, y, k);
-    }
-    inputs.forEach(i => i.addEventListener('input', refresh));
-    refresh();
+function updateSwatch(prefix) {
+    const get = id => parseInt(document.getElementById(prefix + id)?.value) || 0;
+    const swatch = document.getElementById(prefix + 'preview-swatch');
+    if (!swatch) return;
+    swatch.style.background = cmykToHex(get('cyan'), get('magenta'), get('yellow'), get('black'));
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Add modal (PM)
-    bindPreview('add-cyan','add-magenta','add-yellow','add-black','preview-swatch');
-    // Edit modal (PM)
-    bindPreview('edit-cyan','edit-magenta','edit-yellow','edit-black','edit-preview-swatch');
-    // Request add modal (Designer)
-    bindPreview('req-cyan','req-magenta','req-yellow','req-black','req-preview-swatch');
-    // Request edit modal (Designer)
-    bindPreview('req-edit-cyan','req-edit-magenta','req-edit-yellow','req-edit-black','req-edit-preview-swatch');
-});
-
-// ── Populate PM edit modal ─────────────────────────────────
+// ── Populate PM edit modal on open ────────────────────────
 const editModal = document.getElementById('editColorModal');
 if (editModal) {
     editModal.addEventListener('show.bs.modal', function (e) {
         const btn = e.relatedTarget;
-        document.getElementById('editColorForm').action =
-            '/color-codes/' + btn.dataset.id;
+        document.getElementById('editColorForm').action = '/color-codes/' + btn.dataset.id;
+
         document.getElementById('edit-name').value    = btn.dataset.name;
-        document.getElementById('edit-cyan').value    = btn.dataset.c;
-        document.getElementById('edit-magenta').value = btn.dataset.m;
-        document.getElementById('edit-yellow').value  = btn.dataset.y;
-        document.getElementById('edit-black').value   = btn.dataset.k;
-        // Trigger preview refresh
-        document.getElementById('edit-cyan').dispatchEvent(new Event('input'));
+
+        const fields = ['cyan','magenta','yellow','black'];
+        const vals   = [btn.dataset.c, btn.dataset.m, btn.dataset.y, btn.dataset.k];
+        fields.forEach((f, i) => {
+            const num   = document.getElementById('edit-' + f);
+            const range = document.getElementById('edit-' + f + '-range');
+            if (num)   num.value   = vals[i];
+            if (range) range.value = vals[i];
+        });
+        updateSwatch('edit-');
     });
 }
 
-// ── Populate Designer request-edit modal ───────────────────
+// ── Populate Designer request-edit modal on open ──────────
 const reqEditModal = document.getElementById('reqEditColorModal');
 if (reqEditModal) {
     reqEditModal.addEventListener('show.bs.modal', function (e) {
         const btn = e.relatedTarget;
-        document.getElementById('reqEditColorForm').action =
-            '/color-codes/' + btn.dataset.id + '/request';
-        document.getElementById('req-edit-name').value    = btn.dataset.name;
-        document.getElementById('req-edit-cyan').value    = btn.dataset.c;
-        document.getElementById('req-edit-magenta').value = btn.dataset.m;
-        document.getElementById('req-edit-yellow').value  = btn.dataset.y;
-        document.getElementById('req-edit-black').value   = btn.dataset.k;
-        document.getElementById('req-edit-cyan').dispatchEvent(new Event('input'));
+        document.getElementById('reqEditColorForm').action = '/color-codes/' + btn.dataset.id + '/request';
+
+        document.getElementById('req-edit-name').value = btn.dataset.name;
+
+        const fields = ['cyan','magenta','yellow','black'];
+        const vals   = [btn.dataset.c, btn.dataset.m, btn.dataset.y, btn.dataset.k];
+        fields.forEach((f, i) => {
+            const num   = document.getElementById('req-edit-' + f);
+            const range = document.getElementById('req-edit-' + f + '-range');
+            if (num)   num.value   = vals[i];
+            if (range) range.value = vals[i];
+        });
+        updateSwatch('req-edit-');
     });
 }
 </script>
