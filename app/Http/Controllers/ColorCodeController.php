@@ -25,15 +25,12 @@ class ColorCodeController extends Controller
     }
 
     // ----------------------------------------------------------------
-    // Index -- visible to both roles
+    // Index — both roles
     // ----------------------------------------------------------------
 
     public function index(): View
     {
-        $colors  = ColorCode::with('creator')
-            ->orderBy('name')
-            ->get();
-
+        $colors  = ColorCode::with('creator')->orderBy('name')->get();
         $pending = $colors->filter(fn ($c) => $c->is_pending);
         $active  = $colors->filter(fn ($c) => $c->status === 'active');
 
@@ -41,8 +38,13 @@ class ColorCodeController extends Controller
     }
 
     // ----------------------------------------------------------------
-    // Pipeline Manager -- direct CRUD
+    // Pipeline Manager — create / store
     // ----------------------------------------------------------------
+
+    public function create(): View
+    {
+        return view('color-codes.create');
+    }
 
     public function store(Request $request): RedirectResponse
     {
@@ -55,7 +57,17 @@ class ColorCodeController extends Controller
             'approved_by' => auth()->id(),
         ]);
 
-        return back()->with('success', 'Color "' . $data['name'] . '" added.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Color "' . $data['name'] . '" added.');
+    }
+
+    // ----------------------------------------------------------------
+    // Pipeline Manager — edit / update
+    // ----------------------------------------------------------------
+
+    public function edit(ColorCode $colorCode): View
+    {
+        return view('color-codes.edit', compact('colorCode'));
     }
 
     public function update(Request $request, ColorCode $colorCode): RedirectResponse
@@ -73,19 +85,25 @@ class ColorCodeController extends Controller
             'pending_black'   => null,
         ]);
 
-        return back()->with('success', 'Color "' . $colorCode->name . '" updated.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Color "' . $colorCode->name . '" updated.');
     }
+
+    // ----------------------------------------------------------------
+    // Pipeline Manager — delete
+    // ----------------------------------------------------------------
 
     public function destroy(ColorCode $colorCode): RedirectResponse
     {
         $name = $colorCode->name;
         $colorCode->forceDelete();
 
-        return back()->with('success', 'Color "' . $name . '" deleted.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Color "' . $name . '" deleted.');
     }
 
     // ----------------------------------------------------------------
-    // Pipeline Manager -- approve / reject designer requests
+    // Pipeline Manager — approve / reject designer requests
     // ----------------------------------------------------------------
 
     public function approve(ColorCode $colorCode): RedirectResponse
@@ -120,17 +138,18 @@ class ColorCodeController extends Controller
                 break;
         }
 
-        return back()->with('success', 'Request approved.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Request approved.');
     }
 
     public function reject(ColorCode $colorCode): RedirectResponse
     {
         if ($colorCode->status === 'pending_add') {
             $colorCode->forceDelete();
-            return back()->with('success', 'Add request rejected and removed.');
+            return redirect()->route('color-codes.index')
+                ->with('success', 'Add request rejected and removed.');
         }
 
-        // Edit / delete: revert to active, clear pending snapshot
         $colorCode->update([
             'status'          => 'active',
             'pending_name'    => null,
@@ -140,14 +159,19 @@ class ColorCodeController extends Controller
             'pending_black'   => null,
         ]);
 
-        return back()->with('success', 'Request rejected. Color restored to active.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Request rejected. Color restored to active.');
     }
 
     // ----------------------------------------------------------------
-    // Designer -- request-based CRUD
+    // Designer — request create / store
     // ----------------------------------------------------------------
 
-    /** Designer submits a new color -- goes into pending_add. */
+    public function requestCreate(): View
+    {
+        return view('color-codes.request-create');
+    }
+
     public function requestStore(Request $request): RedirectResponse
     {
         $data = $request->validate($this->cmykRules());
@@ -158,14 +182,24 @@ class ColorCodeController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        return back()->with('success', 'Color submitted for approval.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Color submitted for approval.');
     }
 
-    /** Designer submits an edit -- snapshots proposed values, flags as pending_edit. */
+    // ----------------------------------------------------------------
+    // Designer — request edit / update
+    // ----------------------------------------------------------------
+
+    public function requestEdit(ColorCode $colorCode): View
+    {
+        return view('color-codes.request-edit', compact('colorCode'));
+    }
+
     public function requestUpdate(Request $request, ColorCode $colorCode): RedirectResponse
     {
         if ($colorCode->status !== 'active') {
-            return back()->with('error', 'This color already has a pending request.');
+            return redirect()->route('color-codes.index')
+                ->with('error', 'This color already has a pending request.');
         }
 
         $data = $request->validate($this->cmykRules());
@@ -179,18 +213,24 @@ class ColorCodeController extends Controller
             'pending_black'   => $data['black'],
         ]);
 
-        return back()->with('success', 'Edit request submitted for approval.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Edit request submitted for approval.');
     }
 
-    /** Designer requests deletion -- flags as pending_delete. */
+    // ----------------------------------------------------------------
+    // Designer — request delete
+    // ----------------------------------------------------------------
+
     public function requestDestroy(ColorCode $colorCode): RedirectResponse
     {
         if ($colorCode->status !== 'active') {
-            return back()->with('error', 'This color already has a pending request.');
+            return redirect()->route('color-codes.index')
+                ->with('error', 'This color already has a pending request.');
         }
 
         $colorCode->update(['status' => 'pending_delete']);
 
-        return back()->with('success', 'Delete request submitted for approval.');
+        return redirect()->route('color-codes.index')
+            ->with('success', 'Delete request submitted for approval.');
     }
 }

@@ -234,10 +234,18 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:pipeline_manager,designer')
         ->name('color-codes.index');
 
-    // Pipeline manager: direct CRUD
+    // Pipeline manager: create / store / edit / update / delete
+    Route::get('/color-codes/create', [ColorCodeController::class, 'create'])
+        ->middleware('role:pipeline_manager')
+        ->name('color-codes.create');
+
     Route::post('/color-codes', [ColorCodeController::class, 'store'])
         ->middleware('role:pipeline_manager')
         ->name('color-codes.store');
+
+    Route::get('/color-codes/{colorCode}/edit', [ColorCodeController::class, 'edit'])
+        ->middleware('role:pipeline_manager')
+        ->name('color-codes.edit');
 
     Route::put('/color-codes/{colorCode}', [ColorCodeController::class, 'update'])
         ->middleware('role:pipeline_manager')
@@ -257,9 +265,17 @@ Route::middleware('auth')->group(function () {
         ->name('color-codes.reject');
 
     // Designer: request-based CRUD (needs PM approval)
+    Route::get('/color-codes/request/create', [ColorCodeController::class, 'requestCreate'])
+        ->middleware('role:designer')
+        ->name('color-codes.request-create');
+
     Route::post('/color-codes/request', [ColorCodeController::class, 'requestStore'])
         ->middleware('role:designer')
         ->name('color-codes.request-store');
+
+    Route::get('/color-codes/{colorCode}/request/edit', [ColorCodeController::class, 'requestEdit'])
+        ->middleware('role:designer')
+        ->name('color-codes.request-edit');
 
     Route::put('/color-codes/{colorCode}/request', [ColorCodeController::class, 'requestUpdate'])
         ->middleware('role:designer')
