@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Schedule\GanttController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CapacityController;
+use App\Http\Controllers\ColorCodeController;
 use App\Http\Controllers\Dashboard\DeliveryInchargeController;
 use App\Http\Controllers\Dashboard\DesignerController;
 use App\Http\Controllers\Dashboard\HistoryController;
@@ -226,5 +227,46 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/unread-count',                      [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     Route::post('/notifications/{notification}/read',              [NotificationController::class, 'markRead'])->name('notifications.mark-read');
     Route::post('/notifications/{notification}/reply',             [NotificationController::class, 'reply'])->name('notifications.reply');
+
+    // ─── Color Codes ──────────────────────────────────────────
+    // Read: both pipeline_manager and designer can view
+    Route::get('/color-codes', [ColorCodeController::class, 'index'])
+        ->middleware('role:pipeline_manager,designer')
+        ->name('color-codes.index');
+
+    // Pipeline manager: direct CRUD
+    Route::post('/color-codes', [ColorCodeController::class, 'store'])
+        ->middleware('role:pipeline_manager')
+        ->name('color-codes.store');
+
+    Route::put('/color-codes/{colorCode}', [ColorCodeController::class, 'update'])
+        ->middleware('role:pipeline_manager')
+        ->name('color-codes.update');
+
+    Route::delete('/color-codes/{colorCode}', [ColorCodeController::class, 'destroy'])
+        ->middleware('role:pipeline_manager')
+        ->name('color-codes.destroy');
+
+    // Pipeline manager: approve / reject designer requests
+    Route::post('/color-codes/{colorCode}/approve', [ColorCodeController::class, 'approve'])
+        ->middleware('role:pipeline_manager')
+        ->name('color-codes.approve');
+
+    Route::post('/color-codes/{colorCode}/reject', [ColorCodeController::class, 'reject'])
+        ->middleware('role:pipeline_manager')
+        ->name('color-codes.reject');
+
+    // Designer: request-based CRUD (needs PM approval)
+    Route::post('/color-codes/request', [ColorCodeController::class, 'requestStore'])
+        ->middleware('role:designer')
+        ->name('color-codes.request-store');
+
+    Route::put('/color-codes/{colorCode}/request', [ColorCodeController::class, 'requestUpdate'])
+        ->middleware('role:designer')
+        ->name('color-codes.request-update');
+
+    Route::post('/color-codes/{colorCode}/request-delete', [ColorCodeController::class, 'requestDestroy'])
+        ->middleware('role:designer')
+        ->name('color-codes.request-destroy');
 
 });

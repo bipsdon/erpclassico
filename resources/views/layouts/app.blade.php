@@ -334,6 +334,12 @@
                             <i class="bi bi-stack"></i> Pieces by Date
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ route('color-codes.index') }}"
+                           class="nav-link {{ request()->routeIs('color-codes.*') ? 'active' : '' }}">
+                            <i class="bi bi-palette"></i> Color Codes
+                        </a>
+                    </li>
                 @endif
 
                 <li><span class="nav-section">Production</span></li>
@@ -361,6 +367,12 @@
                     <li class="nav-item">
                         <a href="{{ route('schedule.gantt') }}" class="nav-link {{ request()->routeIs('schedule.gantt') ? 'active' : '' }}">
                             <i class="bi bi-bar-chart-steps"></i> Deadline View
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('color-codes.index') }}"
+                           class="nav-link {{ request()->routeIs('color-codes.*') ? 'active' : '' }}">
+                            <i class="bi bi-palette"></i> Color Codes
                         </a>
                     </li>
                     @endif

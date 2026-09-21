@@ -340,7 +340,7 @@ class ProductionController extends Controller
 
     public function setDeliveryInfo(Request $request, Order $order): RedirectResponse
     {
-        abort_unless(auth()->user()->isPipelineManager(), 403, 'Only pipeline managers can set delivery info.');
+            abort_unless(auth()->user()->isPipelineManager(), 403, 'Only pipeline managers can set delivery info.');
 
         if (! in_array($order->stage, ['ready', 'delivered'])) {
             return back()->with('error', 'Delivery info can only be set for orders that are ready or delivered.');
