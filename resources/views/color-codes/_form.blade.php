@@ -1,17 +1,19 @@
 {{--
     Shared CMYK + HEX form fields with two-way live conversion.
-    Optional: $colorCode (model) to pre-fill values.
-             $usePending (bool) to pre-fill from pending_* columns.
+    Required: $printers  — array of ['xp600' => 'XP-600', 'i3200' => 'i3200']
+    Optional: $colorCode — existing ColorCode model to pre-fill values
+              $usePending — true to pre-fill from pending_* columns
 --}}
 @php
-    $prefill = isset($colorCode) ? $colorCode : null;
-    $usePnd  = $usePending ?? false;
-    $name    = old('name',    $prefill ? ($usePnd ? $prefill->pending_name    : $prefill->name)    : '');
-    $cyan    = old('cyan',    $prefill ? ($usePnd ? $prefill->pending_cyan    : $prefill->cyan)    : 0);
-    $magenta = old('magenta', $prefill ? ($usePnd ? $prefill->pending_magenta : $prefill->magenta) : 0);
-    $yellow  = old('yellow',  $prefill ? ($usePnd ? $prefill->pending_yellow  : $prefill->yellow)  : 0);
-    $black   = old('black',   $prefill ? ($usePnd ? $prefill->pending_black   : $prefill->black)   : 0);
-    // Compute initial hex from CMYK
+    $prefill  = isset($colorCode) ? $colorCode : null;
+    $usePnd   = $usePending ?? false;
+    $name     = old('name',    $prefill ? ($usePnd ? $prefill->pending_name    : $prefill->name)    : '');
+    $printer  = old('printer', $prefill ? ($usePnd ? ($prefill->pending_printer ?? $prefill->printer) : $prefill->printer) : '');
+    $cyan     = old('cyan',    $prefill ? ($usePnd ? $prefill->pending_cyan    : $prefill->cyan)    : 0);
+    $magenta  = old('magenta', $prefill ? ($usePnd ? $prefill->pending_magenta : $prefill->magenta) : 0);
+    $yellow   = old('yellow',  $prefill ? ($usePnd ? $prefill->pending_yellow  : $prefill->yellow)  : 0);
+    $black    = old('black',   $prefill ? ($usePnd ? $prefill->pending_black   : $prefill->black)   : 0);
+
     $initR   = round(255 * (1 - $cyan/100) * (1 - $black/100));
     $initG   = round(255 * (1 - $magenta/100) * (1 - $black/100));
     $initB   = round(255 * (1 - $yellow/100) * (1 - $black/100));
@@ -36,6 +38,30 @@
                    required>
             @error('name')
                 <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+
+        {{-- Printer selector --}}
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Printer</label>
+            <div class="d-flex gap-3">
+                @foreach($printers as $key => $label)
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="printer"
+                               id="printer-{{ $key }}"
+                               value="{{ $key }}"
+                               {{ $printer === $key || ($printer === '' && $loop->first) ? 'checked' : '' }}
+                               required>
+                        <label class="form-check-label fw-semibold" for="printer-{{ $key }}">
+                            {{ $label }}
+                        </label>
+                    </div>
+                @endforeach
+            </div>
+            @error('printer')
+                <div class="text-danger mt-1" style="font-size:.85rem">{{ $message }}</div>
             @enderror
         </div>
 
@@ -160,8 +186,7 @@
 
 <script>
 (function () {
-    // ── Helpers ──────────────────────────────────────────────
-    function val(id)   { return parseInt(document.getElementById(id).value) || 0; }
+    function val(id)       { return parseInt(document.getElementById(id).value) || 0; }
     function setVal(id, v) { var el = document.getElementById(id); if (el) el.value = v; }
 
     function cmykToRgb(c, m, y, k) {
@@ -176,18 +201,15 @@
         r /= 255; g /= 255; b /= 255;
         var k = 1 - Math.max(r, g, b);
         if (k === 1) return { c:0, m:0, y:0, k:100 };
-        var c = (1 - r - k) / (1 - k);
-        var m = (1 - g - k) / (1 - k);
-        var y = (1 - b - k) / (1 - k);
         return {
-            c: Math.round(c * 100),
-            m: Math.round(m * 100),
-            y: Math.round(y * 100),
+            c: Math.round(((1 - r - k) / (1 - k)) * 100),
+            m: Math.round(((1 - g - k) / (1 - k)) * 100),
+            y: Math.round(((1 - b - k) / (1 - k)) * 100),
             k: Math.round(k * 100)
         };
     }
 
-    function toHex(n) { return n.toString(16).padStart(2, '0'); }
+    function toHex2(n) { return n.toString(16).padStart(2, '0'); }
 
     function updateSwatch(hex) {
         var swatch = document.getElementById('cc-preview-swatch');
@@ -196,55 +218,43 @@
         if (label)  label.textContent = '#' + hex.toUpperCase();
     }
 
-    // ── CMYK → HEX (called when any CMYK input changes) ─────
     window.cc_cmykToHex = function () {
-        var rgb = cmykToRgb(
-            val('cc-cyan'), val('cc-magenta'),
-            val('cc-yellow'), val('cc-black')
-        );
-        var hex = toHex(rgb.r) + toHex(rgb.g) + toHex(rgb.b);
+        var rgb = cmykToRgb(val('cc-cyan'), val('cc-magenta'), val('cc-yellow'), val('cc-black'));
+        var hex = toHex2(rgb.r) + toHex2(rgb.g) + toHex2(rgb.b);
         setVal('cc-hex', hex.toUpperCase());
         updateSwatch(hex);
         document.getElementById('cc-hex-error').style.display = 'none';
     };
 
-    // ── HEX → CMYK (called when hex input changes) ───────────
     document.getElementById('cc-hex').addEventListener('input', function () {
         var raw = this.value.replace(/[^0-9a-fA-F]/g, '');
         this.value = raw.toUpperCase();
-
         if (raw.length !== 6) {
             document.getElementById('cc-hex-error').style.display = raw.length > 0 ? '' : 'none';
             return;
         }
         document.getElementById('cc-hex-error').style.display = 'none';
-
         var r = parseInt(raw.slice(0,2), 16);
         var g = parseInt(raw.slice(2,4), 16);
         var b = parseInt(raw.slice(4,6), 16);
         var cmyk = rgbToCmyk(r, g, b);
-
-        ['cyan','magenta','yellow','black'].forEach(function(ch) {
-            setVal('cc-' + ch,        cmyk[ch === 'cyan' ? 'c' : ch === 'magenta' ? 'm' : ch === 'yellow' ? 'y' : 'k']);
-            setVal('cc-' + ch + '-range', cmyk[ch === 'cyan' ? 'c' : ch === 'magenta' ? 'm' : ch === 'yellow' ? 'y' : 'k']);
+        var map  = { cyan: cmyk.c, magenta: cmyk.m, yellow: cmyk.y, black: cmyk.k };
+        Object.keys(map).forEach(function(ch) {
+            setVal('cc-' + ch,         map[ch]);
+            setVal('cc-' + ch + '-range', map[ch]);
         });
-
         updateSwatch(raw);
     });
 
-    // ── Sync range → number field ────────────────────────────
     window.cc_rangeToNum = function (ch) {
-        var v = document.getElementById('cc-' + ch + '-range').value;
-        setVal('cc-' + ch, v);
+        setVal('cc-' + ch, document.getElementById('cc-' + ch + '-range').value);
     };
 
-    // ── Sync number → range ──────────────────────────────────
     window.cc_numToRange = function (ch) {
-        var v = document.getElementById('cc-' + ch).value;
-        setVal('cc-' + ch + '-range', v);
+        setVal('cc-' + ch + '-range', document.getElementById('cc-' + ch).value);
     };
 
-    // Run once on load to initialise swatch to existing values
+    // Initialise swatch on page load
     window.cc_cmykToHex();
 })();
 </script>

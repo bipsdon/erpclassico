@@ -17,6 +17,7 @@ class ColorCodeController extends Controller
     {
         return [
             'name'    => ['required', 'string', 'max:100'],
+            'printer' => ['required', 'string', 'in:' . implode(',', array_keys(ColorCode::PRINTERS))],
             'cyan'    => ['required', 'integer', 'min:0', 'max:100'],
             'magenta' => ['required', 'integer', 'min:0', 'max:100'],
             'yellow'  => ['required', 'integer', 'min:0', 'max:100'],
@@ -30,11 +31,16 @@ class ColorCodeController extends Controller
 
     public function index(): View
     {
-        $colors  = ColorCode::with('creator')->orderBy('name')->get();
+        $colors  = ColorCode::with('creator')->orderBy('printer')->orderBy('name')->get();
         $pending = $colors->filter(fn ($c) => $c->is_pending);
         $active  = $colors->filter(fn ($c) => $c->status === 'active');
 
-        return view('color-codes.index', compact('active', 'pending'));
+        // Group active colors by printer for the designer view
+        $byPrinter = $active->groupBy('printer');
+
+        $printers = ColorCode::PRINTERS;
+
+        return view('color-codes.index', compact('active', 'pending', 'byPrinter', 'printers'));
     }
 
     // ----------------------------------------------------------------
@@ -43,7 +49,8 @@ class ColorCodeController extends Controller
 
     public function create(): View
     {
-        return view('color-codes.create');
+        $printers = ColorCode::PRINTERS;
+        return view('color-codes.create', compact('printers'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -67,7 +74,8 @@ class ColorCodeController extends Controller
 
     public function edit(ColorCode $colorCode): View
     {
-        return view('color-codes.edit', compact('colorCode'));
+        $printers = ColorCode::PRINTERS;
+        return view('color-codes.edit', compact('colorCode', 'printers'));
     }
 
     public function update(Request $request, ColorCode $colorCode): RedirectResponse
@@ -76,13 +84,14 @@ class ColorCodeController extends Controller
 
         $colorCode->update([
             ...$data,
-            'status'          => 'active',
-            'approved_by'     => auth()->id(),
-            'pending_name'    => null,
-            'pending_cyan'    => null,
-            'pending_magenta' => null,
-            'pending_yellow'  => null,
-            'pending_black'   => null,
+            'status'           => 'active',
+            'approved_by'      => auth()->id(),
+            'pending_name'     => null,
+            'pending_printer'  => null,
+            'pending_cyan'     => null,
+            'pending_magenta'  => null,
+            'pending_yellow'   => null,
+            'pending_black'    => null,
         ]);
 
         return redirect()->route('color-codes.index')
@@ -118,18 +127,20 @@ class ColorCodeController extends Controller
 
             case 'pending_edit':
                 $colorCode->update([
-                    'name'            => $colorCode->pending_name    ?? $colorCode->name,
-                    'cyan'            => $colorCode->pending_cyan    ?? $colorCode->cyan,
-                    'magenta'         => $colorCode->pending_magenta ?? $colorCode->magenta,
-                    'yellow'          => $colorCode->pending_yellow  ?? $colorCode->yellow,
-                    'black'           => $colorCode->pending_black   ?? $colorCode->black,
-                    'status'          => 'active',
-                    'approved_by'     => auth()->id(),
-                    'pending_name'    => null,
-                    'pending_cyan'    => null,
-                    'pending_magenta' => null,
-                    'pending_yellow'  => null,
-                    'pending_black'   => null,
+                    'name'             => $colorCode->pending_name    ?? $colorCode->name,
+                    'printer'          => $colorCode->pending_printer ?? $colorCode->printer,
+                    'cyan'             => $colorCode->pending_cyan    ?? $colorCode->cyan,
+                    'magenta'          => $colorCode->pending_magenta ?? $colorCode->magenta,
+                    'yellow'           => $colorCode->pending_yellow  ?? $colorCode->yellow,
+                    'black'            => $colorCode->pending_black   ?? $colorCode->black,
+                    'status'           => 'active',
+                    'approved_by'      => auth()->id(),
+                    'pending_name'     => null,
+                    'pending_printer'  => null,
+                    'pending_cyan'     => null,
+                    'pending_magenta'  => null,
+                    'pending_yellow'   => null,
+                    'pending_black'    => null,
                 ]);
                 break;
 
@@ -151,12 +162,13 @@ class ColorCodeController extends Controller
         }
 
         $colorCode->update([
-            'status'          => 'active',
-            'pending_name'    => null,
-            'pending_cyan'    => null,
-            'pending_magenta' => null,
-            'pending_yellow'  => null,
-            'pending_black'   => null,
+            'status'           => 'active',
+            'pending_name'     => null,
+            'pending_printer'  => null,
+            'pending_cyan'     => null,
+            'pending_magenta'  => null,
+            'pending_yellow'   => null,
+            'pending_black'    => null,
         ]);
 
         return redirect()->route('color-codes.index')
@@ -169,7 +181,8 @@ class ColorCodeController extends Controller
 
     public function requestCreate(): View
     {
-        return view('color-codes.request-create');
+        $printers = ColorCode::PRINTERS;
+        return view('color-codes.request-create', compact('printers'));
     }
 
     public function requestStore(Request $request): RedirectResponse
@@ -192,7 +205,8 @@ class ColorCodeController extends Controller
 
     public function requestEdit(ColorCode $colorCode): View
     {
-        return view('color-codes.request-edit', compact('colorCode'));
+        $printers = ColorCode::PRINTERS;
+        return view('color-codes.request-edit', compact('colorCode', 'printers'));
     }
 
     public function requestUpdate(Request $request, ColorCode $colorCode): RedirectResponse
@@ -205,12 +219,13 @@ class ColorCodeController extends Controller
         $data = $request->validate($this->cmykRules());
 
         $colorCode->update([
-            'status'          => 'pending_edit',
-            'pending_name'    => $data['name'],
-            'pending_cyan'    => $data['cyan'],
-            'pending_magenta' => $data['magenta'],
-            'pending_yellow'  => $data['yellow'],
-            'pending_black'   => $data['black'],
+            'status'           => 'pending_edit',
+            'pending_name'     => $data['name'],
+            'pending_printer'  => $data['printer'],
+            'pending_cyan'     => $data['cyan'],
+            'pending_magenta'  => $data['magenta'],
+            'pending_yellow'   => $data['yellow'],
+            'pending_black'    => $data['black'],
         ]);
 
         return redirect()->route('color-codes.index')

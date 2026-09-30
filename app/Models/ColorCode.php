@@ -10,8 +10,15 @@ class ColorCode extends Model
 {
     use SoftDeletes;
 
+    // Supported printers — single source of truth
+    public const PRINTERS = [
+        'xp600' => 'XP-600',
+        'i3200' => 'i3200',
+    ];
+
     protected $fillable = [
         'name',
+        'printer',
         'cyan',
         'magenta',
         'yellow',
@@ -20,6 +27,7 @@ class ColorCode extends Model
         'created_by',
         'approved_by',
         'pending_name',
+        'pending_printer',
         'pending_cyan',
         'pending_magenta',
         'pending_yellow',
@@ -90,6 +98,14 @@ class ColorCode extends Model
             'pending_delete'  => 'Pending Delete',
             default           => ucfirst($this->status),
         };
+    }
+
+    /**
+     * Human label for the printer.
+     */
+    public function getPrinterLabelAttribute(): string
+    {
+        return self::PRINTERS[$this->printer] ?? strtoupper($this->printer);
     }
 
     // ──────────────────────────────────────────────
