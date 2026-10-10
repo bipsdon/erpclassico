@@ -123,13 +123,108 @@
         if ($sortKey !== $key) return 'bi-arrow-down-up text-muted opacity-50';
         return $sortDir === 'asc' ? 'bi-sort-down-alt text-primary' : 'bi-sort-up text-primary';
     };
+    $isPM = auth()->check() && auth()->user()->isPipelineManager();
 @endphp
+
+{{-- ── Bulk action toolbar (PM only, hidden until items checked) ── --}}
+@if($isPM)
+<div id="bulk-toolbar"
+     class="card border-0 shadow-sm mb-3 py-2 px-3 d-none"
+     style="background:#1a3c5e;color:#fff;position:sticky;top:56px;z-index:100">
+    <form id="bulk-form" method="POST" action="{{ route('orders.bulk') }}">
+        @csrf
+        <div id="bulk-ids-container"></div>{{-- injected by JS --}}
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="fw-semibold" style="font-size:.875rem">
+                <i class="bi bi-check2-square me-1"></i>
+                <span id="bulk-count">0</span> selected
+            </span>
+            <div class="vr bg-white opacity-25"></div>
+
+            {{-- Priority --}}
+            <div class="d-flex align-items-center gap-2">
+                <select name="priority" id="bulk-priority-val" class="form-select form-select-sm" style="width:130px;font-size:.8rem">
+                    <option value="">Set priority…</option>
+                    <option value="normal">Normal</option>
+                    <option value="rush">Rush</option>
+                    <option value="critical">Critical</option>
+                </select>
+                <button type="submit" name="action" value="priority"
+                        class="btn btn-sm btn-warning text-dark"
+                        onclick="return bulkConfirm('priority')"
+                        style="font-size:.8rem">
+                    <i class="bi bi-flag me-1"></i>Apply
+                </button>
+            </div>
+            <div class="vr bg-white opacity-25"></div>
+
+            {{-- Status --}}
+            <div class="d-flex align-items-center gap-2">
+                <select name="status" id="bulk-status-val" class="form-select form-select-sm" style="width:150px;font-size:.8rem">
+                    <option value="">Set status…</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="on_hold">On Hold</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <button type="submit" name="action" value="status"
+                        class="btn btn-sm btn-info text-dark"
+                        onclick="return bulkConfirm('status')"
+                        style="font-size:.8rem">
+                    <i class="bi bi-toggle-on me-1"></i>Apply
+                </button>
+            </div>
+            <div class="vr bg-white opacity-25"></div>
+
+            {{-- Stage --}}
+            <div class="d-flex align-items-center gap-2">
+                <select name="stage" id="bulk-stage-val" class="form-select form-select-sm" style="width:150px;font-size:.8rem">
+                    <option value="">Move to stage…</option>
+                    <option value="design">Design</option>
+                    <option value="print">Print</option>
+                    <option value="sew">Sewing</option>
+                    <option value="ready">Ready</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+                <button type="submit" name="action" value="stage"
+                        class="btn btn-sm btn-success"
+                        onclick="return bulkConfirm('stage')"
+                        style="font-size:.8rem">
+                    <i class="bi bi-arrow-right-circle me-1"></i>Move
+                </button>
+            </div>
+            <div class="vr bg-white opacity-25"></div>
+
+            {{-- Delete --}}
+            <button type="submit" name="action" value="delete"
+                    class="btn btn-sm btn-danger"
+                    onclick="return bulkConfirm('delete')"
+                    style="font-size:.8rem">
+                <i class="bi bi-trash me-1"></i>Delete
+            </button>
+
+            <button type="button" id="bulk-clear"
+                    class="btn btn-sm btn-outline-light ms-auto"
+                    style="font-size:.8rem">
+                <i class="bi bi-x-lg me-1"></i>Clear selection
+            </button>
+        </div>
+    </form>
+</div>
+@endif
 
 <div class="card border-0 shadow-sm">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 queue-table">
+        <table class="table table-hover align-middle mb-0 queue-table" id="orders-table">
             <thead class="table-light">
                 <tr>
+                    @if($isPM)
+                    <th class="ps-3" style="width:1%">
+                        {{-- Select all --}}
+                        <input type="checkbox" id="select-all" class="form-check-input"
+                               title="Select all on this page">
+                    </th>
+                    @else
                     <th class="ps-3" style="width:1%">
                         {{-- Default sort --}}
                         <a href="{{ request()->fullUrlWithQuery(['sort' => 'default', 'dir' => 'asc', 'page' => 1]) }}"
@@ -138,6 +233,7 @@
                             <i class="bi bi-arrow-counterclockwise {{ $sortKey === 'default' ? 'text-primary' : 'opacity-50' }}" style="font-size:.85rem"></i>
                         </a>
                     </th>
+                    @endif
                     <th>
                         <a href="{{ $sortUrl('order_number') }}" class="text-decoration-none text-dark d-inline-flex align-items-center gap-1">
                             Order # <i class="bi {{ $sortIcon('order_number') }}" style="font-size:.75rem"></i>
@@ -184,14 +280,22 @@
             </thead>
             <tbody>
                 @forelse($orders as $order)
-                    <tr class="{{ $order->is_late ? 'table-danger' : '' }}">
-                        {{-- Late indicator --}}
+                    <tr class="{{ $order->is_late ? 'table-danger' : '' }}" data-order-id="{{ $order->id }}">
+                        {{-- Checkbox (PM) or late indicator (others) --}}
+                        @if($isPM)
+                        <td class="ps-3">
+                            <input type="checkbox" class="form-check-input order-checkbox"
+                                   value="{{ $order->id }}"
+                                   title="Select order {{ $order->whatsapp_order_id ?? $order->order_number }}">
+                        </td>
+                        @else
                         <td class="ps-3">
                             @if($order->is_late)
                                 <i class="bi bi-exclamation-triangle-fill text-danger"
                                    title="LATE — was due {{ $order->delivery_date->format('d M Y') }}"></i>
                             @endif
                         </td>
+                        @endif
 
                         <td>
                             <a href="{{ route('orders.show', $order) }}"
@@ -376,5 +480,109 @@ document.querySelectorAll('.deliver-btn').forEach(function (btn) {
 </script>
 @endpush
 @endif
+
+{{-- ── Bulk selection JS (PM only) ────────────────────── --}}
+@auth
+@if(auth()->user()->isPipelineManager())
+@push('scripts')
+<script>
+(function () {
+    const selectAll    = document.getElementById('select-all');
+    const toolbar      = document.getElementById('bulk-toolbar');
+    const countEl      = document.getElementById('bulk-count');
+    const idsContainer = document.getElementById('bulk-ids-container');
+    const clearBtn     = document.getElementById('bulk-clear');
+
+    function getChecked() {
+        return Array.from(document.querySelectorAll('.order-checkbox:checked'));
+    }
+
+    function syncToolbar() {
+        const checked = getChecked();
+        const count   = checked.length;
+
+        countEl.textContent = count;
+        toolbar.classList.toggle('d-none', count === 0);
+
+        // Rebuild hidden id inputs
+        idsContainer.innerHTML = '';
+        checked.forEach(function (cb) {
+            const inp = document.createElement('input');
+            inp.type  = 'hidden';
+            inp.name  = 'ids[]';
+            inp.value = cb.value;
+            idsContainer.appendChild(inp);
+        });
+
+        // Sync select-all tri-state
+        const all = document.querySelectorAll('.order-checkbox');
+        if (selectAll) {
+            selectAll.checked       = count > 0 && count === all.length;
+            selectAll.indeterminate = count > 0 && count < all.length;
+        }
+    }
+
+    // Select all / deselect all
+    selectAll?.addEventListener('change', function () {
+        document.querySelectorAll('.order-checkbox').forEach(function (cb) {
+            cb.checked = selectAll.checked;
+        });
+        syncToolbar();
+    });
+
+    // Individual checkbox change
+    document.querySelectorAll('.order-checkbox').forEach(function (cb) {
+        cb.addEventListener('change', syncToolbar);
+    });
+
+    // Click anywhere on the row to toggle checkbox (except interactive elements)
+    document.querySelectorAll('#orders-table tbody tr').forEach(function (row) {
+        row.addEventListener('click', function (e) {
+            if (e.target.closest('a, button, form, select, input')) return;
+            const cb = row.querySelector('.order-checkbox');
+            if (cb) {
+                cb.checked = !cb.checked;
+                syncToolbar();
+            }
+        });
+    });
+
+    // Clear button
+    clearBtn?.addEventListener('click', function () {
+        document.querySelectorAll('.order-checkbox').forEach(function (cb) { cb.checked = false; });
+        if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+        syncToolbar();
+    });
+
+    // Validation + confirm before bulk submit
+    window.bulkConfirm = function (action) {
+        const count = getChecked().length;
+        if (count === 0) { alert('No orders selected.'); return false; }
+
+        if (action === 'priority') {
+            const val = document.getElementById('bulk-priority-val')?.value;
+            if (!val) { alert('Select a priority level first.'); return false; }
+            return confirm('Update priority to "' + val + '" for ' + count + ' order(s)?');
+        }
+        if (action === 'status') {
+            const val = document.getElementById('bulk-status-val')?.value;
+            if (!val) { alert('Select a status first.'); return false; }
+            return confirm('Set status to "' + val.replace('_',' ') + '" for ' + count + ' order(s)?');
+        }
+        if (action === 'stage') {
+            const val = document.getElementById('bulk-stage-val')?.value;
+            if (!val) { alert('Select a stage first.'); return false; }
+            return confirm('Move ' + count + ' order(s) to the "' + val + '" stage?\n\nThis will also update their status where appropriate.');
+        }
+        if (action === 'delete') {
+            return confirm('Move ' + count + ' order(s) to trash?\nThey can be restored from Deleted Orders.');
+        }
+        return true;
+    };
+})();
+</script>
+@endpush
+@endif
+@endauth
 
 @endsection

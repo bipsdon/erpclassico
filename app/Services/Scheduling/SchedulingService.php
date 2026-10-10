@@ -244,7 +244,7 @@ class SchedulingService
             ->where('department', $department)
             ->whereDate('scheduled_date', $dateString)   // exact date — not <=
             ->whereNull('completed_at')
-            ->with('order')
+            ->with(['order' => fn ($q) => $q->withCount('attachments')])
             ->get();
 
         $dtoList            = [];

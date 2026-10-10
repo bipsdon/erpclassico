@@ -37,6 +37,10 @@ final class ScheduledOrderDTO
         public readonly bool    $isLate,
         public readonly float   $dayFraction,
         public readonly ?int    $queuePosition = null,
+        // Brief / spec indicators (used by designer queue)
+        public readonly int     $attachmentsCount = 0,
+        public readonly bool    $hasNotes = false,
+        public readonly bool    $hasDetails = false,
     ) {}
 
     public static function fromOrder(
@@ -73,6 +77,9 @@ final class ScheduledOrderDTO
             isLate:             $days < 0 && $order->stage !== 'delivered',
             dayFraction:        $dayFraction,
             queuePosition:      $queuePosition,
+            attachmentsCount:   (int) ($order->attachments_count ?? $order->attachments->count()),
+            hasNotes:           ! empty($order->notes),
+            hasDetails:         ! empty($order->details),
         );
     }
 
@@ -114,6 +121,15 @@ final class ScheduledOrderDTO
     public function isPinned(): bool
     {
         return $this->queuePosition !== null;
+    }
+
+    /**
+     * True when this design order has neither attachments nor a spec written —
+     * the designer has nothing to work from.
+     */
+    public function isMissingBrief(): bool
+    {
+        return $this->attachmentsCount === 0 && ! $this->hasDetails;
     }
 
     /**

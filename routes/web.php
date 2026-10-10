@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BulkOrderController;
 use App\Http\Controllers\Schedule\GanttController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CapacityController;
@@ -138,6 +139,12 @@ Route::middleware('auth')->group(function () {
         [OrderController::class, 'forceDelete'])
         ->middleware('role:pipeline_manager')
         ->name('orders.force-delete');
+
+    // ─── Bulk actions (PM only, must come before resource) ──────
+    Route::post('/orders/bulk',
+        [BulkOrderController::class, 'handle'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.bulk');
 
     Route::resource('orders', OrderController::class);
 

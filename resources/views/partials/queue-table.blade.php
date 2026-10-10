@@ -14,8 +14,13 @@
     $showCompletedBtn    ??= false;
     $showWhatsappPrimary ??= true;
     $isPM                  = auth()->check() && auth()->user()->isPipelineManager();
+    $isDesignQueue         = $queue->department === 'design';
     $health                = $queue->healthSummary();
     $loadPct               = $queue->loadPercent();
+    // Count missing-brief orders for design queue header badge
+    $missingBriefCount = $isDesignQueue
+        ? count(array_filter($queue->orders, fn($o) => $o->isMissingBrief()))
+        : 0;
 @endphp
 
 <div class="card shadow-sm border-0">
@@ -27,6 +32,11 @@
             <span class="badge bg-primary rounded-pill ms-1">{{ count($queue->orders) }}</span>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+            @if($missingBriefCount > 0)
+                <span class="badge bg-warning text-dark" title="Orders with no attached files and no spec written">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ $missingBriefCount }} no brief
+                </span>
+            @endif
             @if($health['red'] > 0)
                 <span class="badge bg-danger">{{ $health['red'] }} Critical</span>
             @endif
@@ -122,6 +132,9 @@
                             <th class="text-center sort-th" data-col="6">Priority</th>
                             <th class="text-center sort-th" data-col="7">Deadline</th>
                             <th class="text-center sort-th" data-col="8">Status</th>
+                            @if($isDesignQueue)
+                                <th class="text-center" style="width:5rem" title="Attached files &amp; spec">Brief</th>
+                            @endif
                             @if($showCompletedBtn || $isPM)
                                 <th class="text-center pe-3">Actions</th>
                             @endif
@@ -134,6 +147,8 @@
                                 if ($order->isPinned())         $rowClass = 'table-primary';
                                 elseif ($order->isLate)         $rowClass = 'table-danger';
                                 elseif ($order->daysUntilDelivery === 0) $rowClass = 'table-warning';
+                                // Design-only: highlight no-brief rows subtly
+                                elseif ($isDesignQueue && $order->isMissingBrief()) $rowClass = 'table-light';
                             @endphp
                             <tr class="{{ $rowClass }}">
                                 {{-- # --}}
@@ -165,6 +180,23 @@
                                             </a>
                                             @if($order->isOvertime)
                                                 <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">OT</span>
+                                            @endif
+                                            {{-- Design-queue brief indicators --}}
+                                            @if($isDesignQueue)
+                                                @if($order->attachmentsCount > 0)
+                                                    <span class="badge bg-light border text-secondary ms-1"
+                                                          style="font-size:.65rem"
+                                                          title="{{ $order->attachmentsCount }} attached file(s)">
+                                                        <i class="bi bi-paperclip"></i> {{ $order->attachmentsCount }}
+                                                    </span>
+                                                @endif
+                                                @if($order->hasNotes)
+                                                    <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning ms-1"
+                                                          style="font-size:.65rem"
+                                                          title="Has internal notes from Pipeline Manager">
+                                                        <i class="bi bi-sticky"></i>
+                                                    </span>
+                                                @endif
                                             @endif
                                             @if($showWhatsappPrimary)
                                                 <div class="text-muted mt-1" style="font-size:.68rem">{{ $order->orderNumber }}</div>
@@ -247,6 +279,30 @@
                                         {{ ucwords(str_replace('_', ' ', $order->orderStatus)) }}
                                     </span>
                                 </td>
+
+                                {{-- Brief column (design queue only) --}}
+                                @if($isDesignQueue)
+                                    <td class="text-center">
+                                        @if($order->isMissingBrief())
+                                            <span class="badge bg-danger" style="font-size:.68rem" title="No spec written and no files attached — designer has nothing to work from">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Missing
+                                            </span>
+                                        @else
+                                            <div class="d-flex flex-column align-items-center gap-1">
+                                                @if($order->attachmentsCount > 0)
+                                                    <span class="badge bg-success" style="font-size:.68rem" title="{{ $order->attachmentsCount }} file(s) attached">
+                                                        <i class="bi bi-paperclip me-1"></i>{{ $order->attachmentsCount }} file{{ $order->attachmentsCount !== 1 ? 's' : '' }}
+                                                    </span>
+                                                @endif
+                                                @if($order->hasDetails)
+                                                    <span class="badge bg-info text-dark" style="font-size:.68rem" title="Spec written">
+                                                        <i class="bi bi-file-text me-1"></i>Spec
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </td>
+                                @endif
 
                                 {{-- Actions --}}
                                 @if($showCompletedBtn || $isPM)
