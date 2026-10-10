@@ -362,6 +362,22 @@ body.role-designer #main-content { background: #f0f0ff; }
     color: #c7d2fe; /* indigo-200 */
     font-weight: 800;
 }
+/* Live indicator dot — shown when quote came from the API */
+.ds-quote-live {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #6ee7b7;
+    margin-left: .3rem;
+    vertical-align: middle;
+    box-shadow: 0 0 0 0 rgba(110,231,183,.6);
+    animation: ds-live-pulse 2s infinite;
+}
+@keyframes ds-live-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(110,231,183,.6); }
+    70%  { box-shadow: 0 0 0 5px rgba(110,231,183,0); }
+    100% { box-shadow: 0 0 0 0 rgba(110,231,183,0); }
+}
 </style>
 @endpush
 
@@ -406,13 +422,18 @@ body.role-designer #main-content { background: #f0f0ff; }
         'jersey'  => ['label' => 'Kit Design',      'icon' => 'bi-shield-fill',           'color' => '#34d399'],
         'colour'  => ['label' => 'Colour Theory',   'icon' => 'bi-palette-fill',          'color' => '#f472b6'],
         'tip'     => ['label' => 'Illustrator Tip', 'icon' => 'bi-stars',                 'color' => '#60a5fa'],
+        'api'     => ['label' => 'Daily Quote',     'icon' => 'bi-globe2',                'color' => '#6ee7b7'],
     ];
-    $tagMeta = $tagLabels[$quote['tag'] ?? 'design'] ?? $tagLabels['design'];
+    $tagMeta   = $tagLabels[$quote['tag'] ?? 'api'] ?? $tagLabels['api'];
+    $fromApi   = ($quote['source'] ?? 'local') === 'api';
 @endphp
 <div class="ds-quote mb-4" role="note" aria-label="Daily quote">
     {{-- Category pill --}}
     <span class="ds-quote-tag">
         <i class="bi {{ $tagMeta['icon'] }} me-1" style="color:{{ $tagMeta['color'] }}"></i>{{ $tagMeta['label'] }}
+        @if($fromApi)
+            <span class="ds-quote-live" title="Fetched live from ZenQuotes API"></span>
+        @endif
     </span>
     <i class="bi bi-quote ds-quote-icon"></i>
     <div class="ds-quote-text">"{{ $quote['text'] }}"</div>
