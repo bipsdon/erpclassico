@@ -288,6 +288,54 @@ body.role-designer #main-content { background: #f0f0ff; }
     color: #9ca3af;
 }
 .ds-empty i { font-size: 2.5rem; display: block; margin-bottom: .6rem; color: #d1d5db; }
+
+/* ── Motivational quote ──────────────────────────────────── */
+.ds-quote {
+    position: relative;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-radius: var(--ds-card-r);
+    padding: 1rem 1.25rem 1rem 3rem;
+    box-shadow: 0 4px 18px rgba(99,102,241,.22);
+    overflow: hidden;
+}
+.ds-quote::after {
+    /* decorative large background quotation mark */
+    content: '\201C';
+    position: absolute;
+    right: .75rem;
+    top: -.5rem;
+    font-size: 7rem;
+    line-height: 1;
+    color: rgba(255,255,255,.08);
+    font-family: Georgia, serif;
+    pointer-events: none;
+    user-select: none;
+}
+.ds-quote-icon {
+    position: absolute;
+    left: .9rem;
+    top: 1rem;
+    font-size: 1.4rem;
+    color: rgba(255,255,255,.5);
+}
+.ds-quote-text {
+    color: #fff;
+    font-size: .9rem;
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: .35rem;
+}
+.ds-quote-text strong {
+    font-style: normal;
+    font-weight: 700;
+    color: #c7d2fe; /* indigo-200 — stands out but stays on-theme */
+}
+.ds-quote-author {
+    color: rgba(255,255,255,.65);
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
 </style>
 @endpush
 
@@ -322,6 +370,13 @@ body.role-designer #main-content { background: #f0f0ff; }
         <span id="ds-clock"></span>
     </li>
 </ul>
+
+{{-- ── Motivational quote ───────────────────────────────────── --}}
+<div class="ds-quote mb-4" role="note" aria-label="Daily quote">
+    <i class="bi bi-quote ds-quote-icon"></i>
+    <div class="ds-quote-text">{{ $quote['text'] }}, <strong>{{ auth()->user()->name }}</strong>.</div>
+    <div class="ds-quote-author">— {{ $quote['author'] }}</div>
+</div>
 
 {{-- ══════════════════════════════════════════════════════════ --}}
 {{-- STAT PILLS                                                 --}}
