@@ -38,31 +38,38 @@ class QuoteService
      * Return a quote array: [text, author, tag, source]
      *   source = 'api' | 'local'
      *   tag    = 'design'|'tip'|'jersey'|'colour'|'mindset'|'api'
+     *
+     * Strategy:
+     *   30% → ZenQuotes API (fresh general motivation, cached 30 min per user
+     *          so the API isn't hit on every single load)
+     *   70% → local curated library, picked fresh on every request (no cache)
      */
     public function get(int $userId): array
     {
-        $cacheKey = "designer_quote_{$userId}";
-
-        return Cache::remember($cacheKey, now()->addMinutes(self::CACHE_TTL_M), function () {
-            // 30% of the time: try the live API for variety
-            if (random_int(1, 100) <= self::API_WEIGHT) {
-                $apiQuote = $this->fetchFromApi();
-                if ($apiQuote !== null) {
-                    return $apiQuote;
-                }
+        // 30% chance: try the live API (result cached so we don't hammer it)
+        if (random_int(1, 100) <= self::API_WEIGHT) {
+            $cacheKey = "designer_quote_api_{$userId}";
+            $apiQuote = Cache::remember(
+                $cacheKey,
+                now()->addMinutes(self::CACHE_TTL_M),
+                fn () => $this->fetchFromApi()
+            );
+            if ($apiQuote !== null) {
+                return $apiQuote;
             }
+        }
 
-            // 70% of the time (or on API failure): use the curated local library
-            return $this->pickLocal();
-        });
+        // 70% of the time (or when API fails/is skipped):
+        // pick fresh from the local library on every request — no caching.
+        return $this->pickLocal();
     }
 
     /**
-     * Force-bust the cache so the next load fetches a fresh quote.
+     * Force-bust the API cache for a user.
      */
     public function forget(int $userId): void
     {
-        Cache::forget("designer_quote_{$userId}");
+        Cache::forget("designer_quote_api_{$userId}");
     }
 
     // ──────────────────────────────────────────────
