@@ -585,4 +585,67 @@ document.querySelectorAll('.deliver-btn').forEach(function (btn) {
 @endif
 @endauth
 
+{{-- ── Designer skin ─────────────────────────────────────── --}}
+@auth
+@if(auth()->user()->isDesigner())
+@push('styles')
+<style>
+:root { --ds-accent: #6366f1; }
+
+#main-content { background: #f0f0ff; }
+
+/* Pill stage filters */
+.nav-pills .nav-link {
+    border-radius: 2rem !important;
+    font-size: .8rem;
+    border: 1.5px solid #d1d5db !important;
+    color: #4b5563 !important;
+    background: #fff !important;
+    transition: all .2s;
+}
+.nav-pills .nav-link.active {
+    background: var(--ds-accent) !important;
+    border-color: var(--ds-accent) !important;
+    color: #fff !important;
+}
+.nav-pills .nav-link:hover:not(.active) {
+    border-color: var(--ds-accent) !important;
+    color: var(--ds-accent) !important;
+}
+
+/* Search/filter toolbar */
+.card.border-0.shadow-sm { border-radius: .75rem !important; }
+.card.border-0.shadow-sm.mb-3 { border-top: 3px solid var(--ds-accent) !important; }
+
+/* Table card */
+.card.border-0.shadow-sm:not(.mb-3) { border-radius: .75rem !important; box-shadow: 0 2px 12px rgba(99,102,241,.09) !important; }
+
+/* Table row hover: indigo tint */
+.table-hover tbody tr:hover td { background: #f0f0ff !important; }
+
+/* Active / in-progress rows: indigo instead of blue */
+.table-hover tbody tr td .badge.bg-primary { background: var(--ds-accent) !important; }
+
+/* Stage badge override */
+.badge.bg-secondary { background: #6b7280 !important; }
+
+/* Urgency chips */
+.days-chip { border-radius: 2rem !important; }
+
+/* Action buttons: pill shape */
+.btn-group .btn, .btn-group-sm .btn { border-radius: 2rem !important; margin: 0 1px; }
+.btn-outline-secondary { border-radius: 2rem !important; }
+.btn-outline-primary   { border-radius: 2rem !important; }
+.btn-outline-danger    { border-radius: 2rem !important; }
+
+/* Order ref link colour */
+.fw-semibold.text-decoration-none.text-dark:hover { color: var(--ds-accent) !important; }
+
+/* Page title */
+#topbar h1 { color: var(--ds-accent) !important; }
+</style>
+@endpush
+@endif
+@endauth
+
 @endsection

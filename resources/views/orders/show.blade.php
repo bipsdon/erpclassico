@@ -588,4 +588,84 @@ document.getElementById('showDeliverBtn')?.addEventListener('click', function ()
 @endpush
 @endif
 
+{{-- ── Designer skin ────────────────────────────────────── --}}
+@auth
+@if(auth()->user()->isDesigner())
+@push('styles')
+<style>
+:root { --ds-accent: #6366f1; --ds-card-r: .75rem; }
+
+/* Background */
+#main-content { background: #f0f0ff; }
+
+/* All cards get rounded corners + indigo shadow */
+.card { border-radius: var(--ds-card-r) !important; }
+.card.border-0 { box-shadow: 0 2px 12px rgba(99,102,241,.09) !important; }
+
+/* Page title accent */
+#topbar h1 { color: var(--ds-accent) !important; }
+
+/* Back button + export buttons — keep standard but make them pill */
+.btn-outline-secondary, .btn-outline-danger, .btn-outline-success, .btn-outline-primary {
+    border-radius: 2rem !important;
+}
+
+/* Header card: indigo left border accent */
+.col-12.col-xl-8 > .card:first-child {
+    border-left: 4px solid var(--ds-accent) !important;
+}
+
+/* Stage badge: override secondary to indigo */
+.badge.bg-secondary { background: var(--ds-accent) !important; }
+
+/* Production Schedule sidebar: active stage row highlight */
+.list-group-item .btn-outline-primary { border-radius: 2rem !important; }
+.list-group-item .btn-success         { border-radius: 2rem !important; }
+
+/* Pipeline stepper: active circle to indigo */
+.rounded-circle.bg-primary { background: var(--ds-accent) !important; }
+
+/* Order spec card: indigo header accent */
+.card-header { border-left: none !important; }
+.prose { font-size: .9rem; line-height: 1.75; }
+
+/* Attachments section: each file item gets a left accent on hover */
+.col-12.col-sm-6 > .d-flex.align-items-center.gap-2.p-2.border.rounded {
+    border-radius: .5rem !important;
+    transition: border-color .15s, box-shadow .15s;
+}
+.col-12.col-sm-6 > .d-flex.align-items-center.gap-2.p-2.border.rounded:hover {
+    border-color: var(--ds-accent) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+
+/* Internal notes card: amber left stripe */
+.card-header:has(.bi-sticky) { border-left: 4px solid #f59e0b !important; }
+
+/* Activity log timeline: left stripe */
+.col-12.col-xl-4 .card:last-child { border-top: 3px solid var(--ds-accent) !important; }
+.list-group-item .badge.bg-primary { background: var(--ds-accent) !important; }
+
+/* "Back to All Orders" button — de-emphasised for designers (they navigate via dashboard) */
+.btn-outline-secondary:first-child { opacity: .75; }
+
+/* Players table: jersey number badge dark */
+.badge.bg-dark { background: var(--ds-accent) !important; }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+/* Designer: highlight the current stage production row */
+document.querySelectorAll('.list-group-item').forEach(function (li) {
+    if (li.querySelector('.btn-success, .btn-outline-primary')) {
+        li.style.background = '#f0f0ff';
+        li.style.borderLeft = '3px solid #6366f1';
+    }
+});
+</script>
+@endpush
+@endif
+@endauth
+
 @endsection

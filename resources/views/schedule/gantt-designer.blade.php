@@ -2,197 +2,46 @@
 
 @section('title', 'Design Deadline View')
 @section('page-title')
-    <i class="bi bi-bar-chart-steps me-2 text-info"></i>Design Deadline View
+    <i class="bi bi-bar-chart-steps me-2"></i>Design Deadline Map
 @endsection
 
 @push('styles')
 <style>
-    .gantt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+:root { --ds-accent: #6366f1; --ds-card-r: .75rem; }
+body.role-designer #main-content { background: #f0f0ff; }
 
-    .gantt-table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 900px;
-        table-layout: fixed;
-    }
+.ds-tabs { border-bottom: none; gap: .5rem; }
+.ds-tabs .nav-link {
+    border: 1.5px solid #d1d5db; border-radius: 2rem !important;
+    color: #4b5563; padding: .4rem 1.1rem;
+    font-size: .82rem; font-weight: 600; background: #fff; transition: all .2s;
+}
+.ds-tabs .nav-link.active,
+.ds-tabs .nav-link:hover { background: var(--ds-accent); border-color: var(--ds-accent); color: #fff; }
 
-    .gantt-table .col-label    { width: 200px; }
-    .gantt-table .col-timeline { /* auto */ }
+#ds-clock { font-size: .78rem; color: #6b7280; font-variant-numeric: tabular-nums; }
 
-    /* ── Header ─────────────────────────────────────────────── */
-    .gantt-table thead th {
-        background: var(--erp-brand-color);
-        color: #fff;
-        font-size: .7rem;
-        font-weight: 600;
-        padding: 0;
-        border: none;
-    }
+/* Override stat cards to use ds-stat style */
+.ds-stat {
+    background: #fff; border-radius: 1rem;
+    padding: .9rem 1.1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    transition: transform .15s, box-shadow .15s;
+    border: 1.5px solid transparent;
+}
+.ds-stat:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,.11); }
+.ds-stat-num  { font-size: 2rem; font-weight: 800; line-height: 1; }
+.ds-stat-lbl  { font-size: .72rem; color: #6b7280; margin-top: .15rem; }
+.ds-stat-icon {
+    width: 40px; height: 40px; border-radius: .6rem;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;
+}
+.ds-counter-anim { transition: color .3s; }
 
-    .gantt-th-label {
-        padding: .5rem .75rem;
-        color: rgba(255,255,255,.55);
-        font-size: .7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-        vertical-align: middle;
-    }
-
-    .gantt-th-timeline { padding: 0; position: relative; }
-
-    .day-headers { display: flex; height: 100%; }
-
-    .day-header-cell {
-        flex: 1;
-        text-align: center;
-        padding: .3rem .1rem;
-        border-left: 1px solid rgba(255,255,255,.12);
-        font-size: .68rem;
-        line-height: 1.3;
-    }
-
-    .day-header-cell.today   { background: #0d6efd; }
-    .day-header-cell.weekend { background: rgba(0,0,0,.15); }
-
-    /* ── Data rows ───────────────────────────────────────────── */
-    .gantt-row td { border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-    .gantt-row:hover td { background-color: #f8f9ff; }
-
-    .gantt-label-cell {
-        padding: .4rem .75rem;
-        border-right: 1px solid #dee2e6;
-        background: #fff;
-        vertical-align: middle;
-    }
-
-    .gantt-label-cell.overdue {
-        background: #fff8f8;
-        border-left: 3px solid #dc3545;
-    }
-
-    .gantt-label-cell .order-ref {
-        font-size: .8rem;
-        font-weight: 600;
-        color: #1a3c5e;
-        text-decoration: none;
-        display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .gantt-label-cell .order-ref:hover { text-decoration: underline; }
-
-    .gantt-label-cell .customer {
-        font-size: .68rem;
-        color: #6c757d;
-        display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .gantt-timeline-cell {
-        padding: 4px 0;
-        position: relative;
-        background: #fff;
-    }
-
-    /* Day grid */
-    .day-grid {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    .day-grid-col { flex: 1; border-left: 1px solid #f0f0f0; }
-    .day-grid-col.today   { background: rgba(13,110,253,.05); border-left-color: #cce0ff; }
-    .day-grid-col.weekend { background: rgba(0,0,0,.018); }
-
-    /* Bar track */
-    .bar-track {
-        position: relative;
-        z-index: 1;
-        height: 28px;
-        margin: 0 2px;
-    }
-
-    /*
-     * Deadline bar — full width from today to delivery date.
-     * Colour = urgency (not priority).
-     *   red    = overdue or ≤ 2 days
-     *   orange = 3–5 days
-     *   green  = 6+ days
-     */
-    .gantt-bar {
-        position: absolute;
-        top: 3px;
-        height: 22px;
-        border-radius: 5px;
-        display: flex;
-        align-items: center;
-        padding: 0 8px;
-        font-size: .7rem;
-        font-weight: 600;
-        color: #fff;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        box-shadow: 0 1px 3px rgba(0,0,0,.18);
-        min-width: 6px;
-    }
-
-    .gantt-bar.urgency-danger  { background: linear-gradient(90deg,#dc3545,#c82333); }
-    .gantt-bar.urgency-warning { background: linear-gradient(90deg,#fd7e14,#e06c00); }
-    .gantt-bar.urgency-success { background: linear-gradient(90deg,#198754,#157347); }
-
-    /* Bar text */
-    .bar-ref    { flex-shrink: 0; }
-    .bar-detail { opacity: .85; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; }
-
-    /* Delivery pin */
-    .delivery-marker {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: #dc3545;
-        z-index: 2;
-        border-radius: 2px;
-    }
-
-    .delivery-marker::after {
-        content: '▾';
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: .6rem;
-        color: #dc3545;
-        line-height: 1;
-    }
-
-    /* Empty */
-    .gantt-empty td {
-        padding: 2rem .75rem;
-        text-align: center;
-        color: #6c757d;
-        font-size: .82rem;
-        background: #fff;
-    }
-
-    /* Legend dot */
-    .legend-dot {
-        display: inline-block;
-        width: 14px;
-        height: 14px;
-        border-radius: 3px;
-        flex-shrink: 0;
-        vertical-align: middle;
-    }
+/* Gantt card accent */
+body.role-designer .card.shadow-sm { border-radius: var(--ds-card-r) !important; }
+body.role-designer .gantt-table thead th { background: var(--ds-accent); }
+body.role-designer .day-header-cell.today { background: #4f46e5; }
 </style>
 @endpush
 
@@ -203,55 +52,79 @@
     $totalDays    = count($dates);
     $colPct       = 100 / $totalDays;
 
-    $totalOrders      = count($rows);
-    $overdueCount     = collect($rows)->where('isOverdue', true)->count();
-    $dueTodayCount    = collect($rows)->where('daysLeft', 0)->count();
-    $dueWeekCount     = collect($rows)->filter(fn($r) => $r['daysLeft'] >= 1 && $r['daysLeft'] <= 5)->count();
+    $totalOrders   = count($rows);
+    $overdueCount  = collect($rows)->where('isOverdue', true)->count();
+    $dueTodayCount = collect($rows)->where('daysLeft', 0)->count();
+    $dueWeekCount  = collect($rows)->filter(fn($r) => $r['daysLeft'] >= 1 && $r['daysLeft'] <= 5)->count();
 @endphp
 
-{{-- ── Stat cards ───────────────────────────────────────────── --}}
+{{-- ── Pill tabs ──────────────────────────────────────────── --}}
+<ul class="nav ds-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link" href="{{ route('dashboard.designer') }}">
+            <i class="bi bi-grid me-1"></i>My Queue
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ route('dashboard.designer.performance') }}">
+            <i class="bi bi-bar-chart-line me-1"></i>Performance
+        </a>
+    </li>
+    @if(auth()->user()->isDesigner())
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ route('schedule.gantt') }}">
+            <i class="bi bi-bar-chart-steps me-1"></i>Deadline Map
+        </a>
+    </li>
+    @endif
+    <li class="nav-item ms-auto d-flex align-items-center">
+        <span id="ds-clock"></span>
+    </li>
+</ul>
+
+{{-- ── Stat pills ─────────────────────────────────────────── --}}
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body d-flex align-items-center gap-3 p-3">
-                <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="bi bi-pencil-square"></i></div>
-                <div>
-                    <div class="stat-number text-info">{{ $totalOrders }}</div>
-                    <div class="text-muted" style="font-size:.75rem">Pending Designs</div>
-                </div>
+        <div class="ds-stat d-flex align-items-center gap-3">
+            <div class="ds-stat-icon bg-opacity-10" style="background:#e0e7ff;color:#4338ca">
+                <i class="bi bi-pencil-square"></i>
+            </div>
+            <div>
+                <div class="ds-stat-num ds-counter-anim" style="color:var(--ds-accent)" id="gs-total">{{ $totalOrders }}</div>
+                <div class="ds-stat-lbl">Pending Designs</div>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body d-flex align-items-center gap-3 p-3">
-                <div class="stat-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-exclamation-triangle"></i></div>
-                <div>
-                    <div class="stat-number text-danger">{{ $overdueCount }}</div>
-                    <div class="text-muted" style="font-size:.75rem">Overdue</div>
-                </div>
+        <div class="ds-stat d-flex align-items-center gap-3 {{ $overdueCount > 0 ? '' : '' }}" style="{{ $overdueCount > 0 ? 'border-color:#ef4444' : '' }}">
+            <div class="ds-stat-icon" style="background:#fee2e2;color:#dc2626">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div>
+                <div class="ds-stat-num" style="color:#dc2626">{{ $overdueCount }}</div>
+                <div class="ds-stat-lbl">Overdue</div>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body d-flex align-items-center gap-3 p-3">
-                <div class="stat-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-calendar-x"></i></div>
-                <div>
-                    <div class="stat-number text-danger">{{ $dueTodayCount }}</div>
-                    <div class="text-muted" style="font-size:.75rem">Due Today</div>
-                </div>
+        <div class="ds-stat d-flex align-items-center gap-3" style="{{ $dueTodayCount > 0 ? 'border-color:#ef4444' : '' }}">
+            <div class="ds-stat-icon" style="background:#fee2e2;color:#dc2626">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+            <div>
+                <div class="ds-stat-num" style="color:#dc2626">{{ $dueTodayCount }}</div>
+                <div class="ds-stat-lbl">Due Today</div>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body d-flex align-items-center gap-3 p-3">
-                <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-calendar-week"></i></div>
-                <div>
-                    <div class="stat-number text-warning">{{ $dueWeekCount }}</div>
-                    <div class="text-muted" style="font-size:.75rem">Due Within 5 Days</div>
-                </div>
+        <div class="ds-stat d-flex align-items-center gap-3">
+            <div class="ds-stat-icon" style="background:#fef3c7;color:#b45309">
+                <i class="bi bi-calendar-week"></i>
+            </div>
+            <div>
+                <div class="ds-stat-num" style="color:#b45309">{{ $dueWeekCount }}</div>
+                <div class="ds-stat-lbl">Due Within 5 Days</div>
             </div>
         </div>
     </div>
@@ -259,13 +132,15 @@
 
 {{-- ── Chart header ─────────────────────────────────────────── --}}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-    <h6 class="mb-0 fw-semibold">
-        Design Deadline Map
-        <span class="text-muted fw-normal" style="font-size:.8rem">
-            — {{ \Carbon\Carbon::parse($dates[0])->format('d M') }}
+    <div>
+        <span class="fw-bold" style="color:var(--ds-accent);font-size:.75rem;text-transform:uppercase;letter-spacing:.7px">
+            <i class="bi bi-map me-1"></i>Deadline Map
+        </span>
+        <span class="text-muted fw-normal ms-2" style="font-size:.8rem">
+            {{ \Carbon\Carbon::parse($dates[0])->format('d M') }}
             → {{ \Carbon\Carbon::parse($dates[$totalDays-1])->format('d M Y') }}
         </span>
-    </h6>
+    </div>
     <div class="d-flex align-items-center gap-3 flex-wrap" style="font-size:.75rem;color:#495057">
         <span><span class="legend-dot me-1" style="background:#dc3545"></span>≤ 2 days / Overdue</span>
         <span><span class="legend-dot me-1" style="background:#fd7e14"></span>3–5 days</span>
@@ -293,7 +168,7 @@
                         <div class="day-headers" style="height:100%">
                             @foreach($dates as $d)
                                 @php
-                                    $dt = \Carbon\Carbon::parse($d);
+                                    $dt  = \Carbon\Carbon::parse($d);
                                     $cls = $d === $today_str ? 'today' : ($dt->isWeekend() ? 'weekend' : '');
                                 @endphp
                                 <div class="day-header-cell {{ $cls }}">
@@ -312,12 +187,6 @@
             <tbody>
             @forelse($rows as $bar)
                 @php
-                    /*
-                     * Bar starts at today (col 0) and spans to delivery date.
-                     * left%  = 0 (always starts today)
-                     * width% = barSpan / totalDays * 100
-                     * Clamp at window edge.
-                     */
                     $span     = min($bar['barSpan'], $totalDays - $bar['barStart']);
                     $span     = max(1, $span);
                     $leftPct  = 0.0;
@@ -345,9 +214,6 @@
                                   style="font-size:.58rem">{{ ucfirst($bar['priority']) }}</span>
                             <span class="badge bg-light text-secondary border" style="font-size:.58rem">
                                 {{ $bar['quantity'] }} × {{ $bar['productType'] }}
-                            </span>
-                            <span class="badge bg-light text-secondary border" style="font-size:.58rem">
-                                Due {{ \Carbon\Carbon::parse($bar['deliveryDate'])->format('d M') }}
                             </span>
                             @if($bar['isOverdue'])
                                 <span class="badge bg-danger" style="font-size:.58rem">{{ abs($bar['daysLeft']) }}d LATE</span>
@@ -402,4 +268,21 @@
     </div>
 </div>
 
+
 @endsection
+
+@push('scripts')
+<script>
+(function clock() {
+    const el = document.getElementById('ds-clock');
+    if (!el) return;
+    function tick() {
+        const now  = new Date();
+        const pad  = n => String(n).padStart(2,'0');
+        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        el.textContent = days[now.getDay()] + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    }
+    tick(); setInterval(tick, 1000);
+})();
+</script>
+@endpush

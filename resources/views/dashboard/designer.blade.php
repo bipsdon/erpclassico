@@ -215,26 +215,29 @@ body.role-designer #main-content { background: #f0f0ff; }
 .ds-card-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
 .ds-btn-start {
     display: inline-flex; align-items: center; gap: .3rem;
-    padding: .4rem .9rem; border-radius: .45rem;
-    font-size: .8rem; font-weight: 600;
+    padding: .3rem .7rem; border-radius: .45rem;
+    font-size: .78rem; font-weight: 600;
     background: #e0e7ff; color: #4338ca; border: none;
     cursor: pointer; transition: background .15s;
+    white-space: nowrap;
 }
 .ds-btn-start:hover { background: #c7d2fe; }
 .ds-btn-done {
     display: inline-flex; align-items: center; gap: .3rem;
-    padding: .4rem .9rem; border-radius: .45rem;
-    font-size: .8rem; font-weight: 600;
+    padding: .3rem .7rem; border-radius: .45rem;
+    font-size: .78rem; font-weight: 600;
     background: #dcfce7; color: #16a34a; border: none;
     cursor: pointer; transition: background .15s;
+    white-space: nowrap;
 }
 .ds-btn-done:hover { background: #bbf7d0; }
 .ds-btn-view {
     display: inline-flex; align-items: center; gap: .3rem;
-    padding: .4rem .9rem; border-radius: .45rem;
-    font-size: .8rem; font-weight: 600;
+    padding: .3rem .7rem; border-radius: .45rem;
+    font-size: .78rem; font-weight: 600;
     background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;
     text-decoration: none; transition: background .15s;
+    white-space: nowrap;
 }
 .ds-btn-view:hover { background: #e5e7eb; color: #111827; }
 
@@ -665,14 +668,42 @@ body.role-designer #main-content { background: #f0f0ff; }
                         </div>
                     </div>
 
-                    {{-- Right chips --}}
+                    {{-- Right: action buttons + chips --}}
                     <div class="d-flex align-items-center gap-1 flex-shrink-0 flex-wrap justify-content-end">
+
+                        {{-- Inline action buttons — always visible, stop propagation so card doesn't toggle --}}
+                        @if(in_array($order->orderStatus, ['pending', 'on_hold']))
+                            <form method="POST"
+                                  action="{{ route('production.start', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
+                                  onclick="event.stopPropagation()">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="ds-btn-start" title="Start this order">
+                                    <i class="bi bi-play-fill"></i>
+                                    <span class="d-none d-sm-inline">Start</span>
+                                </button>
+                            </form>
+                        @endif
+                        <form method="POST"
+                              action="{{ route('production.complete', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
+                              onclick="event.stopPropagation()"
+                              onsubmit="return confirm('Mark {{ addslashes($order->whatsappOrderId ?? $order->orderNumber) }} as complete in Design?')">
+                            @csrf @method('PATCH')
+                            <button type="submit" class="ds-btn-done" title="Mark as done">
+                                <i class="bi bi-check2-all"></i>
+                                <span class="d-none d-sm-inline">Done</span>
+                            </button>
+                        </form>
+
+                        {{-- Divider --}}
+                        <div style="width:1px;height:22px;background:#e5e7eb;margin:0 .2rem"></div>
+
+                        {{-- Status / brief indicator chips --}}
                         <span class="ds-chip {{ $chipUrgency }}">{{ $order->urgencyLabel() }}</span>
                         <span class="ds-chip {{ $order->priority === 'critical' ? 'ds-chip-red' : ($order->priority === 'rush' ? 'ds-chip-yellow' : 'ds-chip-gray') }}">
                             {{ ucfirst($order->priority) }}
                         </span>
                         @if($order->isMissingBrief())
-                            <span class="ds-chip ds-chip-amber">
+                            <span class="ds-chip ds-chip-amber" title="No brief — contact PM">
                                 <i class="bi bi-exclamation-triangle-fill"></i>
                             </span>
                         @elseif($order->attachmentsCount > 0)
@@ -685,7 +716,6 @@ body.role-designer #main-content { background: #f0f0ff; }
                                 <i class="bi bi-sticky-fill"></i>
                             </span>
                         @endif
-                        {{-- Status dot --}}
                         @if($order->orderStatus === 'in_progress')
                             <span class="ds-chip ds-chip-blue"><i class="bi bi-play-fill"></i> Active</span>
                         @endif
@@ -750,27 +780,8 @@ body.role-designer #main-content { background: #f0f0ff; }
                         @endif
                     </div>
 
-                    {{-- Actions --}}
+                    {{-- Actions — open order link (Start/Done now live in card head) --}}
                     <div class="ds-card-actions">
-                        @if(in_array($order->orderStatus, ['pending', 'on_hold']))
-                            <form method="POST"
-                                  action="{{ route('production.start', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
-                                  onclick="event.stopPropagation()">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="ds-btn-start">
-                                    <i class="bi bi-play-fill"></i> Start
-                                </button>
-                            </form>
-                        @endif
-                        <form method="POST"
-                              action="{{ route('production.complete', ['department' => $order->department, 'orderId' => $order->orderId]) }}"
-                              onclick="event.stopPropagation()"
-                              onsubmit="return confirm('Mark {{ addslashes($order->whatsappOrderId ?? $order->orderNumber) }} as complete in Design?')">
-                            @csrf @method('PATCH')
-                            <button type="submit" class="ds-btn-done">
-                                <i class="bi bi-check2-all"></i> Mark Done
-                            </button>
-                        </form>
                         <a href="{{ route('orders.show', $order->orderId) }}"
                            class="ds-btn-view"
                            onclick="event.stopPropagation()">
