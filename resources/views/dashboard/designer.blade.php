@@ -292,21 +292,21 @@ body.role-designer #main-content { background: #f0f0ff; }
 /* ── Motivational quote ──────────────────────────────────── */
 .ds-quote {
     position: relative;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 60%, #818cf8 100%);
     border-radius: var(--ds-card-r);
-    padding: 1rem 1.25rem 1rem 3rem;
-    box-shadow: 0 4px 18px rgba(99,102,241,.22);
+    padding: 1.1rem 1.4rem 1rem 3.2rem;
+    box-shadow: 0 4px 20px rgba(99,102,241,.25);
     overflow: hidden;
 }
+/* Decorative large background quotation mark */
 .ds-quote::after {
-    /* decorative large background quotation mark */
     content: '\201C';
     position: absolute;
-    right: .75rem;
-    top: -.5rem;
-    font-size: 7rem;
+    right: .5rem;
+    top: -.8rem;
+    font-size: 8rem;
     line-height: 1;
-    color: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.07);
     font-family: Georgia, serif;
     pointer-events: none;
     user-select: none;
@@ -314,27 +314,53 @@ body.role-designer #main-content { background: #f0f0ff; }
 .ds-quote-icon {
     position: absolute;
     left: .9rem;
-    top: 1rem;
-    font-size: 1.4rem;
-    color: rgba(255,255,255,.5);
+    top: 1.1rem;
+    font-size: 1.5rem;
+    color: rgba(255,255,255,.35);
+}
+/* Category pill in top-right */
+.ds-quote-tag {
+    position: absolute;
+    top: .7rem;
+    right: 1rem;
+    font-size: .68rem;
+    font-weight: 700;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    color: #fff;
+    padding: .2rem .6rem;
+    border-radius: 2rem;
+    letter-spacing: .3px;
 }
 .ds-quote-text {
     color: #fff;
-    font-size: .9rem;
+    font-size: .875rem;
     font-style: italic;
-    line-height: 1.6;
-    margin-bottom: .35rem;
+    line-height: 1.65;
+    margin-bottom: .5rem;
+    padding-right: 6rem; /* don't overlap the tag */
 }
-.ds-quote-text strong {
-    font-style: normal;
-    font-weight: 700;
-    color: #c7d2fe; /* indigo-200 — stands out but stays on-theme */
+.ds-quote-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
 }
 .ds-quote-author {
-    color: rgba(255,255,255,.65);
+    color: rgba(255,255,255,.6);
     font-size: .75rem;
+    font-style: normal;
     font-weight: 600;
-    letter-spacing: .3px;
+    letter-spacing: .2px;
+}
+.ds-quote-name {
+    color: rgba(255,255,255,.85);
+    font-size: .78rem;
+}
+.ds-quote-name strong {
+    color: #c7d2fe; /* indigo-200 */
+    font-weight: 800;
 }
 </style>
 @endpush
@@ -372,10 +398,28 @@ body.role-designer #main-content { background: #f0f0ff; }
 </ul>
 
 {{-- ── Motivational quote ───────────────────────────────────── --}}
+@php
+    $firstName  = explode(' ', trim(auth()->user()->name))[0];
+    $tagLabels  = [
+        'mindset' => ['label' => 'Mindset',        'icon' => 'bi-lightning-charge-fill', 'color' => '#f59e0b'],
+        'design'  => ['label' => 'Design',          'icon' => 'bi-vector-pen',            'color' => '#a78bfa'],
+        'jersey'  => ['label' => 'Kit Design',      'icon' => 'bi-shield-fill',           'color' => '#34d399'],
+        'colour'  => ['label' => 'Colour Theory',   'icon' => 'bi-palette-fill',          'color' => '#f472b6'],
+        'tip'     => ['label' => 'Illustrator Tip', 'icon' => 'bi-stars',                 'color' => '#60a5fa'],
+    ];
+    $tagMeta = $tagLabels[$quote['tag'] ?? 'design'] ?? $tagLabels['design'];
+@endphp
 <div class="ds-quote mb-4" role="note" aria-label="Daily quote">
+    {{-- Category pill --}}
+    <span class="ds-quote-tag">
+        <i class="bi {{ $tagMeta['icon'] }} me-1" style="color:{{ $tagMeta['color'] }}"></i>{{ $tagMeta['label'] }}
+    </span>
     <i class="bi bi-quote ds-quote-icon"></i>
-    <div class="ds-quote-text">{{ $quote['text'] }}, <strong>{{ auth()->user()->name }}</strong>.</div>
-    <div class="ds-quote-author">— {{ $quote['author'] }}</div>
+    <div class="ds-quote-text">"{{ $quote['text'] }}"</div>
+    <div class="ds-quote-footer">
+        <span class="ds-quote-author">— {{ $quote['author'] }}</span>
+        <span class="ds-quote-name">Keep creating, <strong>{{ $firstName }}</strong> 👊</span>
+    </div>
 </div>
 
 {{-- ══════════════════════════════════════════════════════════ --}}
