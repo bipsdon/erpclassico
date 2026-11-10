@@ -19,6 +19,7 @@ class Order extends Model
         'customer_phone',
         'whatsapp_order_id',
         'profile_picture_url',
+        'profile_photo_path',
         'quantity',
         'product_type',
         'order_date',

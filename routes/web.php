@@ -187,6 +187,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:pipeline_manager')
         ->name('orders.editor-image');
 
+    // ─── Profile photo direct upload ──────────────────────────
+    Route::post('/orders/profile-photo', [\App\Http\Controllers\OrderProfilePhotoController::class, 'store'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.profile-photo.upload');
+
     // Order attachment routes
     Route::get(
         '/orders/{order}/attachments/{attachment}/download',

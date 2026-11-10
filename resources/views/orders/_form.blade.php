@@ -77,40 +77,93 @@
             </div>
 
             <div class="col-12 col-md-6">
-                <label for="profile_picture_url" class="form-label fw-semibold">
-                    <i class="bi bi-person-circle text-primary me-1"></i>Profile Photo URL
-                    <small class="text-muted fw-normal">(optional — paste Facebook photo link)</small>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-person-circle text-primary me-1"></i>Profile Photo
+                    <small class="text-muted fw-normal">(optional)</small>
                 </label>
-                <div class="input-group">
-                    <input type="url"
-                           id="profile_picture_url"
-                           name="profile_picture_url"
-                           class="form-control @error('profile_picture_url') is-invalid @enderror"
-                           value="{{ $old('profile_picture_url', $editing ? $order->profile_picture_url : '') }}"
-                           placeholder="https://scontent.facebook.com/…">
-                    {{-- Live preview badge --}}
-                    <span class="input-group-text p-1" id="avatar-preview-wrap"
-                          style="background:transparent;border-left:0">
-                        @php
-                            $previewUrl = $old('profile_picture_url')
-                                ?: ($editing ? $order->profile_picture_url : null);
-                        @endphp
+
+                {{-- Tab switcher --}}
+                <div class="btn-group btn-group-sm w-100 mb-2" role="group">
+                    <input type="radio" class="btn-check" name="photo_method" id="method_url"
+                           value="url" autocomplete="off"
+                           {{ (($editing && !$order->profile_photo_path) || !$editing) ? 'checked' : '' }}>
+                    <label class="btn btn-outline-secondary" for="method_url">
+                        <i class="bi bi-link-45deg me-1"></i>URL / CDN link
+                    </label>
+
+                    <input type="radio" class="btn-check" name="photo_method" id="method_upload"
+                           value="upload" autocomplete="off"
+                           {{ ($editing && $order->profile_photo_path) ? 'checked' : '' }}>
+                    <label class="btn btn-outline-secondary" for="method_upload">
+                        <i class="bi bi-upload me-1"></i>Upload photo
+                    </label>
+                </div>
+
+                {{-- Live avatar preview (always visible) --}}
+                @php
+                    $previewUrl = old('profile_picture_url')
+                        ?: ($editing ? $order->profile_picture_url : null);
+                    // Uploaded photo takes precedence over URL for preview
+                    if ($editing && $order->profile_photo_path && !old('profile_picture_url')) {
+                        $previewUrl = '/storage/' . $order->profile_photo_path;
+                    }
+                @endphp
+
+                <div class="d-flex align-items-start gap-3">
+                    <div class="flex-grow-1">
+
+                        {{-- URL panel --}}
+                        <div id="photo-url-panel">
+                            <input type="url"
+                                   id="profile_picture_url"
+                                   name="profile_picture_url"
+                                   class="form-control form-control-sm @error('profile_picture_url') is-invalid @enderror"
+                                   value="{{ old('profile_picture_url', $editing ? $order->profile_picture_url : '') }}"
+                                   placeholder="https://scontent.facebook.com/…">
+                            @error('profile_picture_url')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="text-muted mt-1" style="font-size:.75rem">
+                                Right-click a Facebook photo → "Copy image address", paste here.
+                            </div>
+                        </div>
+
+                        {{-- Upload panel --}}
+                        <div id="photo-upload-panel" style="display:none">
+                            <div id="photo-drop-zone"
+                                 class="border border-2 rounded-2 text-center py-3 px-2"
+                                 style="cursor:pointer;border-style:dashed!important;border-color:#dee2e6!important;transition:background .15s">
+                                <i class="bi bi-cloud-upload text-primary d-block mb-1" style="font-size:1.4rem"></i>
+                                <span class="small text-muted">Drop image or click to browse</span>
+                                <div id="photo-upload-status" class="small mt-1" style="display:none"></div>
+                                <input type="file" id="profile_photo_file" accept="image/jpeg,image/png,image/gif,image/webp"
+                                       class="d-none">
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:.75rem">
+                                JPG, PNG, GIF, WEBP · max 5 MB · resized to 300×300 automatically
+                            </div>
+                            @error('profile_photo_path')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        {{-- Hidden field: stores the storage path of an uploaded photo --}}
+                        <input type="hidden" id="profile_photo_path" name="profile_photo_path"
+                               value="{{ old('profile_photo_path', $editing ? $order->profile_photo_path : '') }}">
+
+                    </div>
+
+                    {{-- Avatar preview --}}
+                    <div class="flex-shrink-0">
                         <x-order-avatar
                             :url="$previewUrl ?: null"
                             :initials="$editing ? $order->avatar_initials : '?'"
-                            :size="32"
+                            :size="56"
                             class="avatar-live-preview"
                         />
-                    </span>
+                    </div>
                 </div>
-                @error('profile_picture_url')
-                    <div class="text-danger small mt-1">{{ $message }}</div>
-                @enderror
-                <div class="text-muted small mt-1">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Upload the photo to Facebook, right-click → "Copy image address", paste here.
-                    No file is stored — only the URL.
-                </div>
+
             </div>
 
         </div>

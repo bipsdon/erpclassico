@@ -575,42 +575,44 @@ renumberRows();
 </script>
 
 <script>
-// ─── Profile photo URL — live avatar preview ──────────────
+// ─── Profile photo — URL input + direct upload ────────────
 (function () {
-    const urlInput = document.getElementById('profile_picture_url');
-    if (!urlInput) return;
+    const methodUrl    = document.getElementById('method_url');
+    const methodUpload = document.getElementById('method_upload');
+    const urlPanel     = document.getElementById('photo-url-panel');
+    const uploadPanel  = document.getElementById('photo-upload-panel');
+    const urlInput     = document.getElementById('profile_picture_url');
+    const pathInput    = document.getElementById('profile_photo_path');
+    const fileInput    = document.getElementById('profile_photo_file');
+    const dropZone     = document.getElementById('photo-drop-zone');
+    const statusEl     = document.getElementById('photo-upload-status');
 
-    // Find the <img> and the fallback <span> inside the preview widget.
-    // The component wraps them in a .order-avatar-wrap span.
-    const wrap     = document.querySelector('.avatar-live-preview');
-    if (!wrap) return;
+    if (!methodUrl || !methodUpload) return;
 
-    const imgEl      = wrap.querySelector('img');
-    const fallbackEl = wrap.querySelector('span[id$="-fallback"]');
+    // ── Find the preview <img> / fallback inside the avatar widget
+    const wrap      = document.querySelector('.avatar-live-preview');
+    const imgEl     = wrap ? wrap.querySelector('img') : null;
+    const fallbackEl= wrap ? wrap.querySelector('span[id$="-fallback"]') : null;
 
-    function applyUrl(url) {
-        url = url.trim();
-
+    function applyPreviewUrl(url) {
+        url = (url || '').trim();
         if (!url) {
-            // No URL — show only the fallback
             if (imgEl) imgEl.style.display = 'none';
             if (fallbackEl) fallbackEl.style.zIndex = 1;
             return;
         }
-
         if (imgEl) {
-            imgEl.src          = url;
+            imgEl.src = url;
             imgEl.style.display = '';
             imgEl.style.zIndex  = 1;
             if (fallbackEl) fallbackEl.style.zIndex = 0;
-        } else {
-            // No <img> yet (no URL was set server-side) — create one
-            const newImg         = document.createElement('img');
-            newImg.alt           = '';
-            newImg.loading       = 'lazy';
+        } else if (wrap) {
+            const newImg = document.createElement('img');
+            newImg.alt   = '';
+            newImg.loading = 'lazy';
             newImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;z-index:1;';
-            newImg.onerror = function () {
-                this.style.display = 'none';
+            newImg.onerror = () => {
+                newImg.style.display = 'none';
                 if (fallbackEl) fallbackEl.style.zIndex = 1;
             };
             newImg.src = url;
@@ -619,17 +621,114 @@ renumberRows();
         }
     }
 
-    // Debounce — only apply after the user stops typing for 500ms
+    // ── Tab switch ────────────────────────────────────────
+    function switchMethod(method) {
+        if (method === 'url') {
+            urlPanel.style.display    = '';
+            uploadPanel.style.display = 'none';
+            // Show URL-based preview
+            applyPreviewUrl(urlInput.value);
+        } else {
+            urlPanel.style.display    = 'none';
+            uploadPanel.style.display = '';
+            // Show uploaded photo if one exists
+            applyPreviewUrl(pathInput.value ? '/storage/' + pathInput.value : '');
+        }
+    }
+
+    methodUrl.addEventListener('change', () => switchMethod('url'));
+    methodUpload.addEventListener('change', () => switchMethod('upload'));
+
+    // Initial render
+    switchMethod(methodUpload.checked ? 'upload' : 'url');
+
+    // ── URL debounced preview ─────────────────────────────
     let debounceTimer;
     urlInput.addEventListener('input', function () {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => applyUrl(this.value), 500);
+        debounceTimer = setTimeout(() => applyPreviewUrl(this.value), 500);
     });
-
-    // Also apply immediately on blur (paste / autocomplete)
     urlInput.addEventListener('blur', function () {
         clearTimeout(debounceTimer);
-        applyUrl(this.value);
+        applyPreviewUrl(this.value);
+    });
+
+    // ── Upload helpers ────────────────────────────────────
+    function setUploadStatus(msg, color) {
+        statusEl.textContent   = msg;
+        statusEl.style.color   = color;
+        statusEl.style.display = msg ? '' : 'none';
+    }
+
+    async function uploadPhoto(file) {
+        // Client-side size guard
+        if (file.size > 5 * 1024 * 1024) {
+            setUploadStatus('File must be under 5 MB.', '#dc3545');
+            return;
+        }
+
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowed.includes(file.type)) {
+            setUploadStatus('Only JPG, PNG, GIF, and WEBP images are accepted.', '#dc3545');
+            return;
+        }
+
+        setUploadStatus('Uploading…', '#0d6efd');
+        dropZone.style.background = '#e8f4fd';
+
+        const formData = new FormData();
+        formData.append('photo', file);
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+
+        try {
+            const res = await fetch('{{ route("orders.profile-photo.upload") }}', {
+                method: 'POST',
+                body:   formData,
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err?.message || `HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            // Store path so the form sends it
+            pathInput.value = data.path;
+
+            // Live preview
+            applyPreviewUrl(data.url);
+
+            setUploadStatus('✓ Photo uploaded', '#198754');
+            dropZone.style.background = '#f0fff4';
+        } catch (err) {
+            console.error(err);
+            setUploadStatus('Upload failed — ' + err.message, '#dc3545');
+            dropZone.style.background = '';
+        }
+    }
+
+    // ── Drop zone interactions ─────────────────────────────
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', function () {
+        if (this.files[0]) uploadPhoto(this.files[0]);
+    });
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.style.background = '#e8f4fd';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.style.background = '';
+    });
+
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.style.background = '';
+        const file = e.dataTransfer.files[0];
+        if (file) uploadPhoto(file);
     });
 }());
 </script>

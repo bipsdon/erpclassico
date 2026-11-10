@@ -117,6 +117,7 @@ class OrderController extends Controller
                     'quantity', 'product_type', 'order_date', 'delivery_date', 'priority',
                     'details', 'notes',
                 ]),
+                'profile_photo_path' => $request->input('profile_photo_path') ?: null,
                 'stage'      => 'design',
                 'pipeline'   => $request->input('pipeline', ['design', 'print', 'sew']),
                 'status'     => 'pending',
@@ -178,6 +179,16 @@ class OrderController extends Controller
                 'quantity', 'product_type', 'order_date', 'delivery_date', 'priority',
                 'stage', 'pipeline', 'status', 'details', 'notes',
             ]));
+
+            // Handle uploaded profile photo path update
+            $newPhotoPath = $request->input('profile_photo_path');
+            if ($newPhotoPath !== null) {
+                // If a new photo was uploaded and there was a previous one, delete the old file
+                if ($order->profile_photo_path && $order->profile_photo_path !== $newPhotoPath) {
+                    Storage::disk('public')->delete($order->profile_photo_path);
+                }
+                $order->update(['profile_photo_path' => $newPhotoPath ?: null]);
+            }
 
             $this->syncPlayers($order, $request->input('players', []));
             $this->storeAttachments($order, $request);
@@ -272,9 +283,16 @@ class OrderController extends Controller
     {
         $this->authorizeManager();
 
-        // Delete stored files
+        // Delete stored attachment files
         foreach ($order->attachments as $attachment) {
             Storage::disk('private')->delete($attachment->file_path);
+        }
+
+        // Delete uploaded profile photo
+        if ($order->profile_photo_path) {
+            Storage::disk('public')->delete($order->profile_photo_path);
+            $order->profile_photo_path = null;
+            $order->save();
         }
 
         $order->delete(); // soft delete
@@ -337,6 +355,11 @@ class OrderController extends Controller
         // Permanently delete attachments from disk
         foreach ($order->attachments as $attachment) {
             Storage::disk('private')->delete($attachment->file_path);
+        }
+
+        // Permanently delete uploaded profile photo
+        if ($order->profile_photo_path) {
+            Storage::disk('public')->delete($order->profile_photo_path);
         }
 
         $order->forceDelete();
