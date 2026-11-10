@@ -219,111 +219,93 @@
 
 @section('content')
 
-<p class="text-muted mb-4" style="font-size:.9rem">
+@section('content')
+
+<p class="text-muted mb-3" style="font-size:.9rem">
     <i class="bi bi-stars me-1 text-warning"></i>
-    Take a quick break. Your puzzles reset every day.
+    Take a quick break. Jump to:
+    <a href="#game-sudoku" class="ms-2 me-1">Sudoku</a>·
+    <a href="#game-wordle" class="mx-1">Wordle</a>·
+    <a href="#game-crossword" class="ms-1">Crossword</a>
 </p>
 
-{{-- ── Game tabs ──────────────────────────────────────────── --}}
-<ul class="nav nav-tabs mb-4" id="gameTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active fw-semibold" id="tab-sudoku"
-                data-bs-toggle="tab" data-bs-target="#panel-sudoku"
-                type="button" role="tab">
-            <i class="bi bi-grid-3x3 me-1"></i>Sudoku
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link fw-semibold" id="tab-wordle"
-                data-bs-toggle="tab" data-bs-target="#panel-wordle"
-                type="button" role="tab">
-            <i class="bi bi-alphabet me-1"></i>Wordle
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link fw-semibold" id="tab-crossword"
-                data-bs-toggle="tab" data-bs-target="#panel-crossword"
-                type="button" role="tab">
-            <i class="bi bi-layout-text-window me-1"></i>Crossword
-        </button>
-    </li>
-</ul>
-
-<div class="tab-content">
-
-    {{-- ════════════════════════════════════════════
-         SUDOKU
-    ════════════════════════════════════════════ --}}
-    <div class="tab-pane fade show active" id="panel-sudoku" role="tabpanel">
+{{-- ════════════════════════════════════════════
+     SUDOKU
+════════════════════════════════════════════ --}}
+<div id="game-sudoku" class="card border-0 shadow-sm mb-5">
+    <div class="card-header bg-white py-3 d-flex align-items-center flex-wrap gap-2">
+        <i class="bi bi-grid-3x3 text-primary"></i>
+        <span class="fw-semibold">Sudoku</span>
+        <span class="badge bg-light border text-secondary ms-1" id="sudoku-difficulty">Medium</span>
+        <span class="badge bg-light border text-secondary" id="sudoku-timer">0:00</span>
+        <div class="ms-auto d-flex gap-2 flex-wrap">
+            <select class="form-select form-select-sm" id="sudoku-level" style="width:auto">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary" id="sudoku-new-btn">
+                <i class="bi bi-arrow-clockwise me-1"></i>New
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="sudoku-hint-btn">
+                <i class="bi bi-lightbulb me-1"></i>Hint
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
         <div class="game-panel">
-            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                <div class="d-flex gap-2">
-                    <span class="badge bg-light border text-secondary" id="sudoku-difficulty">Medium</span>
-                    <span class="badge bg-light border text-secondary" id="sudoku-timer">0:00</span>
-                </div>
-                <div class="d-flex gap-2">
-                    <select class="form-select form-select-sm" id="sudoku-level" style="width:auto">
-                        <option value="easy">Easy</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="hard">Hard</option>
-                    </select>
-                    <button class="btn btn-sm btn-outline-primary" id="sudoku-new-btn">
-                        <i class="bi bi-arrow-clockwise me-1"></i>New
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" id="sudoku-hint-btn">
-                        <i class="bi bi-lightbulb me-1"></i>Hint
-                    </button>
-                </div>
-            </div>
-
             <div id="sudoku-grid"></div>
-
             <div class="mt-3" id="sudoku-numpad">
                 @for($n = 1; $n <= 9; $n++)
                     <button class="num-btn" data-num="{{ $n }}">{{ $n }}</button>
                 @endfor
                 <button class="erase-btn" id="sudoku-erase">✕</button>
             </div>
-
             <div id="sudoku-msg" class="text-center mt-3 fw-semibold" style="min-height:1.5rem"></div>
         </div>
     </div>
+</div>
 
-    {{-- ════════════════════════════════════════════
-         WORDLE
-    ════════════════════════════════════════════ --}}
-    <div class="tab-pane fade" id="panel-wordle" role="tabpanel">
+{{-- ════════════════════════════════════════════
+     WORDLE
+════════════════════════════════════════════ --}}
+<div id="game-wordle" class="card border-0 shadow-sm mb-5">
+    <div class="card-header bg-white py-3 d-flex align-items-center flex-wrap gap-2">
+        <i class="bi bi-alphabet text-primary"></i>
+        <span class="fw-semibold">Wordle</span>
+        <div id="wordle-msg" class="ms-2 flex-grow-1"></div>
+        <button class="btn btn-sm btn-outline-primary ms-auto" id="wordle-new-btn">
+            <i class="bi bi-arrow-clockwise me-1"></i>New Word
+        </button>
+    </div>
+    <div class="card-body">
         <div class="game-panel">
-            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                <div id="wordle-msg"></div>
-                <button class="btn btn-sm btn-outline-primary ms-auto" id="wordle-new-btn">
-                    <i class="bi bi-arrow-clockwise me-1"></i>New Word
-                </button>
-            </div>
-
             <div id="wordle-board" class="mb-4"></div>
-
             <div id="wordle-keyboard"></div>
         </div>
     </div>
+</div>
 
-    {{-- ════════════════════════════════════════════
-         CROSSWORD
-    ════════════════════════════════════════════ --}}
-    <div class="tab-pane fade" id="panel-crossword" role="tabpanel">
+{{-- ════════════════════════════════════════════
+     CROSSWORD
+════════════════════════════════════════════ --}}
+<div id="game-crossword" class="card border-0 shadow-sm mb-5">
+    <div class="card-header bg-white py-3 d-flex align-items-center flex-wrap gap-2">
+        <i class="bi bi-layout-text-window text-primary"></i>
+        <span class="fw-semibold">Crossword</span>
+        <span class="badge bg-light border text-secondary ms-1" id="cw-timer">0:00</span>
+        <div class="ms-auto d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" id="cw-check-btn">
+                <i class="bi bi-check2 me-1"></i>Check
+            </button>
+            <button class="btn btn-sm btn-outline-primary" id="cw-new-btn">
+                <i class="bi bi-arrow-clockwise me-1"></i>New
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
         <div class="row g-4">
             <div class="col-12 col-md-auto">
-                <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                    <span class="badge bg-light border text-secondary" id="cw-timer">0:00</span>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-secondary" id="cw-check-btn">
-                            <i class="bi bi-check2 me-1"></i>Check
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary" id="cw-new-btn">
-                            <i class="bi bi-arrow-clockwise me-1"></i>New
-                        </button>
-                    </div>
-                </div>
                 <div id="crossword-wrap">
                     <div id="crossword-grid"></div>
                 </div>
@@ -343,8 +325,7 @@
             </div>
         </div>
     </div>
-
-</div>{{-- /tab-content --}}
+</div>
 
 @endsection
 
@@ -524,7 +505,7 @@
     });
 
     document.addEventListener('keydown', e => {
-        if (!document.getElementById('panel-sudoku').classList.contains('show')) return;
+        if (!document.getElementById('game-sudoku')) return;
         if (e.key >= '1' && e.key <= '9' && selected !== null && puzzle[selected] === 0) {
             userBoard[selected] = parseInt(e.key);
             render();
@@ -773,7 +754,7 @@
 
     // ── Physical keyboard ─────────────────────────────────────
     document.addEventListener('keydown', e => {
-        if (!document.getElementById('panel-wordle').classList.contains('show')) return;
+        if (!document.getElementById('game-wordle')) return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
         if (e.key === 'Enter')     handleKey('Enter');
         else if (e.key === 'Backspace') handleKey('Backspace');
