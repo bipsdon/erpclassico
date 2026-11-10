@@ -689,22 +689,25 @@
         const rowIdx = guesses.length;
         guesses.push(current);
 
+        // Snapshot the word NOW — `current` is reset to '' below before the timeouts fire
+        const word = current;
+
         // Reveal tiles with flip animation
         result.forEach((state, c) => {
             const tile = document.getElementById(`wt-${rowIdx}-${c}`);
             setTimeout(() => {
                 tile.classList.add('flip');
                 setTimeout(() => {
-                    tile.textContent = current[c];
+                    tile.textContent = word[c];
                     tile.className   = `wordle-tile ${state}`;
                 }, 250);
             }, c * 100);
         });
 
         setTimeout(() => {
-            result.forEach((state, c) => colorKey(current[c], state));
+            result.forEach((state, c) => colorKey(word[c], state));
 
-            if (current === target) {
+            if (word === target) {
                 gameOver = true;
                 const msgs = ['Genius!','Magnificent!','Impressive!','Splendid!','Great!','Phew!'];
                 showMsg(msgs[Math.min(rowIdx, 5)] + ' 🎉');
