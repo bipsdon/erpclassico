@@ -73,30 +73,30 @@
 
 /* ── Wordle ───────────────────────────────────────────────── */
 #wordle-board {
-    display: grid;
-    grid-template-rows: repeat(6, 1fr);
-    gap: 5px;
-    max-width: 330px;
-    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 310px;
+    margin: 0 auto 1.5rem;
 }
 .wordle-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
+    display: flex;
+    gap: 6px;
 }
 .wordle-tile {
-    aspect-ratio: 1;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
     border: 2px solid #d3d6da;
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(1rem, 4vw, 1.5rem);
+    font-size: 1.4rem;
     font-weight: 700;
     text-transform: uppercase;
-    color: #fff;
-    background: #fff;
     color: #1a1a1b;
+    background: #fff;
     transition: background .3s, border-color .3s;
 }
 .wordle-tile.filled    { border-color: #878a8c; }
@@ -115,9 +115,9 @@
 }
 .wordle-tile.flip { animation: tile-flip .5s ease forwards; }
 @keyframes tile-flip {
-    0%{transform:rotateX(0)}
-    50%{transform:rotateX(-90deg)}
-    100%{transform:rotateX(0)}
+    0%  { transform: rotateX(0); }
+    50% { transform: rotateX(-90deg); }
+    100%{ transform: rotateX(0); }
 }
 
 #wordle-keyboard {
