@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderStageLog;
+use App\Models\ProductionSchedule;
 use App\Services\Scheduling\SchedulingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -128,7 +129,10 @@ class BulkOrderController extends Controller
 
     /**
      * Move selected orders to a different stage.
-     * Also logs the stage change in OrderStageLog.
+     * Also logs the stage change in OrderStageLog and stamps completed_at on
+     * any production_schedules rows for stages being skipped or left behind —
+     * otherwise those orders remain visible in department queues even though
+     * their orders.stage has already moved past that department.
      */
     private function bulkStage(array $ids, ?string $stage): RedirectResponse
     {
@@ -139,7 +143,22 @@ class BulkOrderController extends Controller
         $orders = Order::whereIn('id', $ids)->get();
         $count  = $orders->count();
 
-        DB::transaction(function () use ($orders, $stage) {
+        // All production departments in pipeline order.
+        $allDepts = ['design', 'print', 'sew'];
+
+        // Departments whose schedule rows must be closed when moving to $stage.
+        // Any department that is no longer the active stage should be stamped
+        // completed_at so it disappears from that department's queue.
+        //   - moving to 'ready' or 'delivered' → close all three depts
+        //   - moving to 'sew'   → close design + print
+        //   - moving to 'print' → close design only
+        //   - moving to 'design' → close nothing (department is still active)
+        $stagePosition = array_search($stage, $allDepts, true);
+        $deptsToClose  = $stagePosition === false
+            ? $allDepts  // ready/delivered — close everything
+            : array_slice($allDepts, 0, $stagePosition); // close depts before target
+
+        DB::transaction(function () use ($orders, $stage, $deptsToClose) {
             foreach ($orders as $order) {
                 if ($order->stage === $stage) {
                     continue;
@@ -151,6 +170,30 @@ class BulkOrderController extends Controller
                     :                                 $order->status);
 
                 $order->update(['stage' => $stage, 'status' => $newStatus]);
+
+                // Stamp completed_at on every production_schedule row for
+                // departments the order is being moved past. This ensures
+                // those department dashboards stop showing the order.
+                if (! empty($deptsToClose)) {
+                    ProductionSchedule::where('order_id', $order->id)
+                        ->whereIn('department', $deptsToClose)
+                        ->whereNull('completed_at')
+                        ->update([
+                            'completed_at' => now(),
+                            'completed_by' => auth()->id(),
+                        ]);
+                }
+
+                // Also close the target stage's schedule row if moving to
+                // ready/delivered, since the order is fully done.
+                if (in_array($stage, ['ready', 'delivered'], true)) {
+                    ProductionSchedule::where('order_id', $order->id)
+                        ->whereNull('completed_at')
+                        ->update([
+                            'completed_at' => now(),
+                            'completed_by' => auth()->id(),
+                        ]);
+                }
 
                 OrderStageLog::create([
                     'order_id'    => $order->id,

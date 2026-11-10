@@ -97,6 +97,9 @@
                            class="btn btn-sm btn-outline-success">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i>Download XLSX
                         </a>
+                        <a href="{{ route('orders.import.create') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-file-earmark-arrow-up me-1"></i>Bulk Import
+                        </a>
                         <a href="{{ route('orders.create') }}" class="btn btn-sm btn-success">
                             <i class="bi bi-plus-lg me-1"></i>New Order
                         </a>
