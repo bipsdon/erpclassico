@@ -118,10 +118,10 @@
                         <div class="text-muted small">Customer</div>
                         <div class="d-flex align-items-center gap-2 mt-1">
                             <x-order-avatar
-                                :url="$order->profile_picture_url"
+                                :url="$order->photo_url"
                                 :initials="$order->avatar_initials"
-                                :size="40"
-                                fontSize=".8rem"
+                                :size="52"
+                                fontSize=".85rem"
                             />
                             <div>
                                 <div class="fw-semibold">{{ $order->customer_name }}</div>

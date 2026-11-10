@@ -571,7 +571,9 @@
             `<span class="text-success"><i class="bi bi-trophy-fill me-1"></i>Solved in ${m}:${String(s).padStart(2,'0')}! 🎉</span>`;
     }
 
-    newGame();
+    // Defer past Bootstrap tab init so clicking other tabs works immediately
+    document.getElementById('sudoku-msg').textContent = 'Generating puzzle…';
+    setTimeout(newGame, 0);
 }());
 
 
@@ -780,7 +782,7 @@
 
     document.getElementById('wordle-new-btn').addEventListener('click', newGame);
 
-    newGame();
+    setTimeout(newGame, 0);
 }());
 
 
@@ -1209,7 +1211,7 @@
         renderClues();
     });
 
-    newGame();
+    setTimeout(newGame, 0);
 }());
 </script>
 @endpush

@@ -22,6 +22,7 @@ final class ScheduledOrderDTO
         public readonly string  $customerName,
         public readonly ?string $whatsappOrderId,
         public readonly ?string $profilePictureUrl,
+        public readonly ?string $profilePhotoPath,
         public readonly string  $avatarInitials,
         public readonly int     $quantity,
         public readonly string  $productType,
@@ -62,6 +63,7 @@ final class ScheduledOrderDTO
             customerName:       $order->customer_name,
             whatsappOrderId:    $order->whatsapp_order_id,
             profilePictureUrl:  $order->profile_picture_url,
+            profilePhotoPath:   $order->profile_photo_path,
             avatarInitials:     $order->avatar_initials,
             quantity:           $order->quantity,
             productType:        $order->product_type,
@@ -121,6 +123,18 @@ final class ScheduledOrderDTO
     public function isPinned(): bool
     {
         return $this->queuePosition !== null;
+    }
+
+    /**
+     * Best available photo URL: uploaded file takes priority over CDN URL.
+     */
+    public function photoUrl(): ?string
+    {
+        if ($this->profilePhotoPath) {
+            return '/storage/' . $this->profilePhotoPath;
+        }
+
+        return $this->profilePictureUrl ?: null;
     }
 
     /**

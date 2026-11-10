@@ -313,9 +313,9 @@
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <x-order-avatar
-                                    :url="$order->profile_picture_url"
+                                    :url="$order->photo_url"
                                     :initials="$order->avatar_initials"
-                                    :size="32"
+                                    :size="42"
                                 />
                                 <div>
                                     <div style="font-size:.875rem">{{ $order->customer_name }}</div>

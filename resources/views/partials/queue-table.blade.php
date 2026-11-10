@@ -212,7 +212,7 @@
                                 {{-- Customer --}}
                                 <td style="font-size:.875rem" data-val="{{ $order->customerName }}">
                                     <div class="d-flex align-items-center gap-2">
-                                        <x-order-avatar :url="$order->profilePictureUrl" :initials="$order->avatarInitials" :size="30"/>
+                                        <x-order-avatar :url="$order->photoUrl()" :initials="$order->avatarInitials" :size="40"/>
                                         {{ $order->customerName }}
                                     </div>
                                 </td>

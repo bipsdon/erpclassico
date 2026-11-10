@@ -57,6 +57,22 @@ class Order extends Model
     // ──────────────────────────────────────────────
 
     /**
+     * Resolve the best available photo URL for the avatar.
+     *
+     * Priority: directly-uploaded file > CDN/Facebook URL > null.
+     * This means views never need to know which method was used —
+     * they just pass $order->photo_url to x-order-avatar.
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if ($this->profile_photo_path) {
+            return '/storage/' . $this->profile_photo_path;
+        }
+
+        return $this->profile_picture_url ?: null;
+    }
+
+    /**
      * Human-readable product type label.
      */
     public function getProductTypeLabelAttribute(): string

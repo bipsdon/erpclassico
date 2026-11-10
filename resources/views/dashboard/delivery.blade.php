@@ -111,7 +111,7 @@
 
                         {{-- Customer + qty --}}
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <x-order-avatar :url="$order->profile_picture_url" :initials="$order->avatar_initials" :size="32"/>
+                            <x-order-avatar :url="$order->photo_url" :initials="$order->avatar_initials" :size="42"/>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="fw-semibold text-truncate" style="font-size:.85rem">{{ $order->customer_name }}</div>
                                 <div class="text-muted" style="font-size:.7rem">{{ $order->customer_phone }}</div>
@@ -297,7 +297,7 @@
                             </td>
                             <td data-val="{{ $order->customer_name }}">
                                 <div class="d-flex align-items-center gap-2">
-                                    <x-order-avatar :url="$order->profile_picture_url" :initials="$order->avatar_initials" :size="26"/>
+                                    <x-order-avatar :url="$order->photo_url" :initials="$order->avatar_initials" :size="36"/>
                                     {{ $order->customer_name }}
                                 </div>
                             </td>
