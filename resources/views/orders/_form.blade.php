@@ -134,7 +134,7 @@
                                  class="border border-2 rounded-2 text-center py-3 px-2"
                                  style="cursor:pointer;border-style:dashed!important;border-color:#dee2e6!important;transition:background .15s">
                                 <i class="bi bi-cloud-upload text-primary d-block mb-1" style="font-size:1.4rem"></i>
-                                <span class="small text-muted">Drop image or click to browse</span>
+                                <span class="small text-muted">Drop image, click to browse, or <kbd style="font-size:.7rem">Ctrl+V</kbd> to paste</span>
                                 <div id="photo-upload-status" class="small mt-1" style="display:none"></div>
                                 <input type="file" id="profile_photo_file" accept="image/jpeg,image/png,image/gif,image/webp"
                                        class="d-none">

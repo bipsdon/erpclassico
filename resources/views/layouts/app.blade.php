@@ -375,6 +375,12 @@
                             <i class="bi bi-palette"></i> Color Codes
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ route('refreshment.index') }}"
+                           class="nav-link {{ request()->routeIs('refreshment.*') ? 'active' : '' }}">
+                            <i class="bi bi-controller"></i> Refreshment
+                        </a>
+                    </li>
                     @endif
                 @endif
 

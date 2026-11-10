@@ -16,6 +16,7 @@ use App\Http\Controllers\Dashboard\SewingManagerController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\RefreshmentController;
 use App\Http\Controllers\Reports\StaffPerformanceController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -233,6 +234,11 @@ Route::middleware('auth')->group(function () {
         [ProductionController::class, 'reorder'])
         ->middleware('role:pipeline_manager')
         ->name('production.reorder');
+
+    // ─── Refreshment (games for designers) ───────────────────
+    Route::get('/refreshment', [RefreshmentController::class, 'index'])
+        ->middleware('role:pipeline_manager,designer')
+        ->name('refreshment.index');
 
     // ─── Gantt / Schedule view ───────────────────────────────
     Route::get('/schedule/gantt', [GanttController::class, 'index'])

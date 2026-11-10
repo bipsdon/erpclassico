@@ -730,5 +730,32 @@ renumberRows();
         const file = e.dataTransfer.files[0];
         if (file) uploadPhoto(file);
     });
+
+    // ── Clipboard paste (Ctrl+V / Cmd+V / right-click paste) ─
+    // Works when the upload panel is visible and the user pastes anywhere
+    // on the page, or directly onto the drop zone.
+    function handlePaste(e) {
+        // Only when the upload tab is active
+        if (uploadPanel.style.display === 'none') return;
+
+        const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+        if (!items) return;
+
+        for (const item of items) {
+            if (item.kind === 'file' && item.type.startsWith('image/')) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (file) uploadPhoto(file);
+                return;
+            }
+        }
+    }
+
+    document.addEventListener('paste', handlePaste);
+    dropZone.addEventListener('paste',  handlePaste);
+
+    // Make the drop zone focusable so it can receive paste events directly
+    dropZone.setAttribute('tabindex', '0');
+    dropZone.addEventListener('click', () => dropZone.focus());
 }());
 </script>
