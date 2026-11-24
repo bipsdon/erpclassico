@@ -14,6 +14,7 @@ class Order extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'client_id',
         'order_number',
         'customer_name',
         'customer_phone',
@@ -286,6 +287,16 @@ class Order extends Model
     // ──────────────────────────────────────────────
     // Relationships
     // ──────────────────────────────────────────────
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function bill(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Bill::class);
+    }
 
     public function creator(): BelongsTo
     {

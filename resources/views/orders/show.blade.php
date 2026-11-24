@@ -539,6 +539,88 @@
             </ul>
         </div>
 
+        {{-- ── Bill card (pipeline manager only) ────────────── --}}
+        @if(auth()->user()->isPipelineManager())
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-receipt me-2 text-success"></i>Billing</span>
+                @if($order->client)
+                    <a href="{{ route('clients.show', $order->client) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-person-lines-fill me-1"></i>Client Ledger
+                    </a>
+                @endif
+            </div>
+            <div class="card-body">
+                @if(session('success') && str_contains(session('success'), 'Bill'))
+                    <div class="alert alert-success py-2 mb-3">{{ session('success') }}</div>
+                @endif
+                @php $bill = $order->bill; @endphp
+                @if($bill)
+                    <div class="row g-2 mb-3 text-center">
+                        <div class="col-4">
+                            <div class="border rounded-2 py-2 px-1">
+                                <div class="fw-bold text-dark">{{ number_format($bill->amount, 2) }}</div>
+                                <div class="text-muted" style="font-size:.7rem">Amount</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded-2 py-2 px-1">
+                                <div class="fw-bold text-success">{{ number_format($bill->received, 2) }}</div>
+                                <div class="text-muted" style="font-size:.7rem">Received</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded-2 py-2 px-1">
+                                <div class="fw-bold {{ $bill->balance > 0 ? 'text-danger' : 'text-success' }}">
+                                    {{ number_format($bill->balance, 2) }}
+                                </div>
+                                <div class="text-muted" style="font-size:.7rem">Balance</div>
+                            </div>
+                        </div>
+                    </div>
+                    @if($bill->notes)
+                        <div class="text-muted small mb-3"><i class="bi bi-sticky me-1"></i>{{ $bill->notes }}</div>
+                    @endif
+                @else
+                    <p class="text-muted small mb-3">No bill recorded yet.</p>
+                @endif
+                <form method="POST" action="{{ route('orders.bill.upsert', $order) }}">
+                    @csrf
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold mb-1">Total Amount</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">৳</span>
+                            <input type="number" name="amount" step="0.01" min="0"
+                                   class="form-control @error('amount') is-invalid @enderror"
+                                   value="{{ old('amount', $bill?->amount ?? '') }}"
+                                   placeholder="0.00" required>
+                        </div>
+                        @error('amount') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold mb-1">Amount Received</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">৳</span>
+                            <input type="number" name="received" step="0.01" min="0"
+                                   class="form-control @error('received') is-invalid @enderror"
+                                   value="{{ old('received', $bill?->received ?? '0') }}"
+                                   placeholder="0.00" required>
+                        </div>
+                        @error('received') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold mb-1">Notes</label>
+                        <textarea name="notes" rows="2" class="form-control form-control-sm"
+                                  placeholder="e.g. 50% advance paid">{{ old('notes', $bill?->notes ?? '') }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-success w-100">
+                        <i class="bi bi-check2-circle me-1"></i>{{ $bill ? 'Update Bill' : 'Save Bill' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        @endif
+
         {{-- Stage audit log --}}
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 fw-semibold">

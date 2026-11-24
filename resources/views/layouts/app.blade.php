@@ -340,6 +340,13 @@
                             <i class="bi bi-palette"></i> Color Codes
                         </a>
                     </li>
+                    <li><span class="nav-section">Clients & Billing</span></li>
+                    <li class="nav-item">
+                        <a href="{{ route('clients.index') }}"
+                           class="nav-link {{ request()->routeIs('clients.*') ? 'active' : '' }}">
+                            <i class="bi bi-person-lines-fill"></i> Clients
+                        </a>
+                    </li>
                 @endif
 
                 <li><span class="nav-section">Production</span></li>

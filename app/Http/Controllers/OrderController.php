@@ -150,7 +150,7 @@ class OrderController extends Controller
 
     public function show(Order $order): View
     {
-        $order->load(['creator', 'players', 'attachments.uploader', 'stageLogs.changedBy', 'productionSchedules']);
+        $order->load(["creator", "players", "attachments.uploader", "stageLogs.changedBy", "productionSchedules", "bill", "client"]);
 
         return view('orders.show', compact('order'));
     }

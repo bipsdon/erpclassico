@@ -759,3 +759,64 @@ renumberRows();
     dropZone.addEventListener('click', () => dropZone.focus());
 }());
 </script>
+
+{{-- ── Client autocomplete ─────────────────────────────── --}}
+<script>
+(function () {
+    const input       = document.getElementById('customer_name');
+    const hiddenId    = document.getElementById('client_id');
+    const suggestions = document.getElementById('client-suggestions');
+    if (!input) return;
+
+    let debounce;
+
+    input.addEventListener('input', function () {
+        clearTimeout(debounce);
+        const q = this.value.trim();
+        hiddenId.value = '';   // clear selection when user types
+        if (q.length < 1) { suggestions.style.display = 'none'; return; }
+
+        debounce = setTimeout(async () => {
+            try {
+                const res  = await fetch(`{{ route('clients.autocomplete') }}?q=` + encodeURIComponent(q), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const data = await res.json();
+                suggestions.innerHTML = '';
+                if (!data.length) { suggestions.style.display = 'none'; return; }
+                data.forEach(client => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action py-2 px-3';
+                    li.style.cursor = 'pointer';
+                    li.innerHTML = `<span class="fw-semibold">${escHtml(client.name)}</span>`
+                        + (client.phone ? ` <small class="text-muted ms-2">${escHtml(client.phone)}</small>` : '');
+                    li.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+                        input.value    = client.name;
+                        hiddenId.value = client.id;
+                        // Auto-fill phone if the phone field is empty
+                        const phoneInput = document.getElementById('customer_phone');
+                        if (phoneInput && !phoneInput.value && client.phone) {
+                            phoneInput.value = client.phone;
+                        }
+                        suggestions.style.display = 'none';
+                    });
+                    suggestions.appendChild(li);
+                });
+                suggestions.style.display = 'block';
+            } catch (_) { /* ignore */ }
+        }, 200);
+    });
+
+    input.addEventListener('blur', () => {
+        setTimeout(() => { suggestions.style.display = 'none'; }, 150);
+    });
+    input.addEventListener('focus', () => {
+        if (suggestions.children.length) suggestions.style.display = 'block';
+    });
+
+    function escHtml(str) {
+        return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+    }
+}());
+</script>

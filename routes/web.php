@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BillController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\BulkOrderController;
 use App\Http\Controllers\OrderImportController;
 use App\Http\Controllers\Schedule\GanttController;
@@ -249,6 +251,24 @@ Route::middleware('auth')->group(function () {
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update']);
     Route::patch('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])
         ->name('users.toggle-active');
+
+    // ─── Clients (pipeline manager only) ──────────────────────
+    Route::get('/clients/autocomplete', [ClientController::class, 'autocomplete'])
+        ->middleware('role:pipeline_manager')
+        ->name('clients.autocomplete');
+    Route::get('/clients/{client}/export/xlsx', [ClientController::class, 'exportXlsx'])
+        ->middleware('role:pipeline_manager')
+        ->name('clients.export.xlsx');
+    Route::get('/clients/{client}/export/pdf', [ClientController::class, 'exportPdf'])
+        ->middleware('role:pipeline_manager')
+        ->name('clients.export.pdf');
+    Route::resource('clients', ClientController::class)
+        ->middleware('role:pipeline_manager');
+
+    // ─── Bills (pipeline manager only) ────────────────────────
+    Route::post('/orders/{order}/bill', [BillController::class, 'upsert'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.bill.upsert');
 
     // ─── Capacity Settings (pipeline manager only) ────────────
     Route::get('/capacity', [CapacityController::class, 'index'])->name('capacity.index');

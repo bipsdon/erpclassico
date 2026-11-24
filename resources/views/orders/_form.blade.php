@@ -32,16 +32,27 @@
                 <label for="customer_name" class="form-label fw-semibold">
                     Customer Name <span class="text-danger">*</span>
                 </label>
-                <input type="text"
-                       id="customer_name"
-                       name="customer_name"
-                       class="form-control @error('customer_name') is-invalid @enderror"
-                       value="{{ $old('customer_name') }}"
-                       placeholder="e.g. FC United Academy"
-                       required>
+                <div class="position-relative">
+                    <input type="text"
+                           id="customer_name"
+                           name="customer_name"
+                           class="form-control @error('customer_name') is-invalid @enderror"
+                           value="{{ $old('customer_name') }}"
+                           placeholder="e.g. FC United Academy"
+                           autocomplete="off"
+                           required>
+                    <input type="hidden" id="client_id" name="client_id"
+                           value="{{ $old('client_id', $editing ? $order->client_id : '') }}">
+                    <ul id="client-suggestions"
+                        class="list-group position-absolute w-100 shadow-sm"
+                        style="z-index:1000;display:none;max-height:200px;overflow-y:auto;top:100%;left:0"></ul>
+                </div>
                 @error('customer_name')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
+                <div class="text-muted mt-1" style="font-size:.75rem">
+                    <i class="bi bi-person-check me-1"></i>Start typing to pick a saved regular client, or enter a new name.
+                </div>
             </div>
 
             <div class="col-12 col-md-6">

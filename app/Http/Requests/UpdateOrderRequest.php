@@ -23,6 +23,7 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'client_id'      => ['nullable', 'integer', 'exists:clients,id'],
             'customer_name'  => ['required', 'string', 'max:150'],
             'customer_phone' => ['required', 'string', 'max:30'],
             'whatsapp_order_id' => ['nullable', 'string', 'max:100'],
