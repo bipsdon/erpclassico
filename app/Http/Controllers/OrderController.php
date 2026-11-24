@@ -113,6 +113,7 @@ class OrderController extends Controller
         DB::transaction(function () use ($request) {
             $order = Order::create([
                 ...$request->only([
+                    'client_id',
                     'customer_name', 'customer_phone', 'whatsapp_order_id', 'profile_picture_url',
                     'quantity', 'product_type', 'order_date', 'delivery_date', 'priority',
                     'details', 'notes',
@@ -175,6 +176,7 @@ class OrderController extends Controller
             $fromStatus = $order->status;
 
             $order->update($request->only([
+                'client_id',
                 'customer_name', 'customer_phone', 'whatsapp_order_id', 'profile_picture_url',
                 'quantity', 'product_type', 'order_date', 'delivery_date', 'priority',
                 'stage', 'pipeline', 'status', 'details', 'notes',
