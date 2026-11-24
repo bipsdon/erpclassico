@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ClientPaymentController;
 use App\Http\Controllers\BulkOrderController;
 use App\Http\Controllers\OrderImportController;
 use App\Http\Controllers\Schedule\GanttController;
@@ -264,6 +265,14 @@ Route::middleware('auth')->group(function () {
         ->name('clients.export.pdf');
     Route::resource('clients', ClientController::class)
         ->middleware('role:pipeline_manager');
+
+    // ─── Client payments (pipeline manager only) ───────────────
+    Route::post('/clients/{client}/payments', [ClientPaymentController::class, 'store'])
+        ->middleware('role:pipeline_manager')
+        ->name('clients.payments.store');
+    Route::delete('/clients/{client}/payments/{payment}', [ClientPaymentController::class, 'destroy'])
+        ->middleware('role:pipeline_manager')
+        ->name('clients.payments.destroy');
 
     // ─── Bills (pipeline manager only) ────────────────────────
     Route::post('/orders/{order}/bill', [BillController::class, 'upsert'])

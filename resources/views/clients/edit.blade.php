@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Edit Client')
+@section('title', 'Edit Client — ' . $client->name)
 @section('page-title')
     <i class="bi bi-pencil me-2 text-warning"></i>Edit Client
 @endsection
@@ -11,8 +11,16 @@
     </a>
 </div>
 
-<form method="POST" action="{{ route('clients.update', $client) }}">
-    @csrf @method('PUT')
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show">
+        <ul class="mb-0">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+<form method="POST" action="{{ route('clients.update', $client->id) }}">
+    @csrf
+    @method('PUT')
     <div class="row g-4">
         <div class="col-12 col-xl-8">
             @include('clients._form')

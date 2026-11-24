@@ -28,6 +28,11 @@ class Client extends Model
         return $this->hasManyThrough(Bill::class, Order::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(ClientPayment::class)->latest('payment_date');
+    }
+
     // ──────────────────────────────────────────────
     // Computed helpers
     // ──────────────────────────────────────────────

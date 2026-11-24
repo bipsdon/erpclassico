@@ -45,19 +45,24 @@ class ClientController extends Controller
 
     public function show(Client $client): View
     {
-        $client->load(['orders.bill']);
-
-        // Orders with their bill, newest first
+        // Eager-load everything the view needs
         $orders = $client->orders()
-            ->with('bill')
+            ->with(['bill', 'stageLogs'])
             ->orderByDesc('order_date')
             ->get();
 
-        $totalBilled   = $orders->sum(fn ($o) => optional($o->bill)->amount ?? 0);
+        $payments = $client->payments()->with('recorder')->get();
+
+        $totalBilled   = $orders->sum(fn ($o) => optional($o->bill)->amount   ?? 0);
         $totalReceived = $orders->sum(fn ($o) => optional($o->bill)->received ?? 0);
         $totalBalance  = $totalBilled - $totalReceived;
 
-        return view('clients.show', compact('client', 'orders', 'totalBilled', 'totalReceived', 'totalBalance'));
+        $totalPaid = $payments->sum('amount');
+
+        return view('clients.show', compact(
+            'client', 'orders', 'payments',
+            'totalBilled', 'totalReceived', 'totalBalance', 'totalPaid'
+        ));
     }
 
     public function edit(Client $client): View
