@@ -82,20 +82,20 @@
     </div>
     <div class="summary-box">
         <div class="summary-inner">
-            <div class="summary-num color-blue">৳ {{ number_format($totalBilled, 2) }}</div>
+            <div class="summary-num color-blue">Rs. {{ number_format($totalBilled, 2) }}</div>
             <div class="summary-lbl">Total Billed</div>
         </div>
     </div>
     <div class="summary-box">
         <div class="summary-inner">
-            <div class="summary-num color-green">৳ {{ number_format($totalReceived, 2) }}</div>
+            <div class="summary-num color-green">Rs. {{ number_format($totalReceived, 2) }}</div>
             <div class="summary-lbl">Total Received</div>
         </div>
     </div>
     <div class="summary-box">
         <div class="summary-inner">
             <div class="summary-num {{ $totalBalance > 0 ? 'color-red' : 'color-green' }}">
-                ৳ {{ number_format($totalBalance, 2) }}
+                Rs. {{ number_format($totalBalance, 2) }}
             </div>
             <div class="summary-lbl">Outstanding Balance</div>
         </div>
@@ -114,9 +114,9 @@
             <th>Order Date</th>
             <th>Delivered</th>
             <th>Stage</th>
-            <th class="r">Amount (৳)</th>
-            <th class="r">Received (৳)</th>
-            <th class="r">Balance (৳)</th>
+            <th class="r">Amount (Rs.)</th>
+            <th class="r">Received (Rs.)</th>
+            <th class="r">Balance (Rs.)</th>
         </tr>
     </thead>
     <tbody>

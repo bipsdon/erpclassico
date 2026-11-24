@@ -205,7 +205,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Total Amount <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">৳</span>
+                            <span class="input-group-text">Rs.</span>
                             <input type="number" name="amount" step="0.01" min="0"
                                    class="form-control"
                                    value="{{ old('amount', $b ? $b->amount : '') }}"
@@ -215,7 +215,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Amount Received <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">৳</span>
+                            <span class="input-group-text">Rs.</span>
                             <input type="number" name="received" step="0.01" min="0"
                                    class="form-control"
                                    value="{{ old('received', $b ? $b->received : '0') }}"
@@ -231,6 +231,11 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <a href="{{ route('orders.bill.pdf', $order) }}"
+                       class="btn btn-outline-danger"
+                       title="Download Bill PDF">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Download Bill
+                    </a>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check2-circle me-1"></i>Save Bill
                     </button>

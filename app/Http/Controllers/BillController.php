@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Bill;
 use App\Models\Order;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class BillController extends Controller
 {
@@ -38,5 +40,27 @@ class BillController extends Controller
         $bill->save();
 
         return back()->with('success', 'Bill saved.');
+    }
+
+    /**
+     * Download a PDF bill for an order.
+     * Works even before a bill exists — shows "Pending billing" in that case.
+     */
+    public function exportPdf(Order $order): Response
+    {
+        $order->loadMissing(['bill', 'players']);
+
+        $bill = $order->bill;
+
+        // Drop a logo PNG at public/images/classico-logo.png to have it appear on the bill.
+        $logoPath = public_path('images/classico-logo.png');
+
+        $pdf = Pdf::loadView('orders.bill-pdf', compact('order', 'bill', 'logoPath'))
+            ->setPaper('a4', 'portrait');
+
+        $slug     = str_replace(['/', '\\', ' '], '-', $order->order_number);
+        $filename = 'bill-' . $slug . '.pdf';
+
+        return $pdf->download($filename);
     }
 }

@@ -94,9 +94,9 @@ class ClientLedgerExport implements
             'Order Date',
             'Delivered Date',
             'Stage',
-            'Amount (৳)',
-            'Received (৳)',
-            'Balance (৳)',
+            'Amount (Rs.)',
+            'Received (Rs.)',
+            'Balance (Rs.)',
             'Notes',
         ];
     }

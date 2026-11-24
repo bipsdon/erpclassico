@@ -544,11 +544,18 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3 fw-semibold d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-receipt me-2 text-success"></i>Billing</span>
-                @if($order->client)
-                    <a href="{{ route('clients.show', $order->client) }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-person-lines-fill me-1"></i>Client Ledger
+                <div class="d-flex gap-2 align-items-center">
+                    <a href="{{ route('orders.bill.pdf', $order) }}"
+                       class="btn btn-sm btn-outline-danger"
+                       title="Download Bill PDF">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Download Bill
                     </a>
-                @endif
+                    @if($order->client)
+                        <a href="{{ route('clients.show', $order->client) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-person-lines-fill me-1"></i>Client Ledger
+                        </a>
+                    @endif
+                </div>
             </div>
             <div class="card-body">
                 @if(session('success') && str_contains(session('success'), 'Bill'))
@@ -589,7 +596,7 @@
                     <div class="mb-2">
                         <label class="form-label small fw-semibold mb-1">Total Amount</label>
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text">৳</span>
+                            <span class="input-group-text">Rs.</span>
                             <input type="number" name="amount" step="0.01" min="0"
                                    class="form-control @error('amount') is-invalid @enderror"
                                    value="{{ old('amount', $bill?->amount ?? '') }}"
@@ -600,7 +607,7 @@
                     <div class="mb-2">
                         <label class="form-label small fw-semibold mb-1">Amount Received</label>
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text">৳</span>
+                            <span class="input-group-text">Rs.</span>
                             <input type="number" name="received" step="0.01" min="0"
                                    class="form-control @error('received') is-invalid @enderror"
                                    value="{{ old('received', $bill?->received ?? '0') }}"

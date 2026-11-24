@@ -269,6 +269,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/orders/{order}/bill', [BillController::class, 'upsert'])
         ->middleware('role:pipeline_manager')
         ->name('orders.bill.upsert');
+    Route::get('/orders/{order}/bill/pdf', [BillController::class, 'exportPdf'])
+        ->middleware('role:pipeline_manager')
+        ->name('orders.bill.pdf');
 
     // ─── Capacity Settings (pipeline manager only) ────────────
     Route::get('/capacity', [CapacityController::class, 'index'])->name('capacity.index');
