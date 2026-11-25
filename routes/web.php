@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientPaymentController;
+use App\Http\Controllers\CustomBillController;
 use App\Http\Controllers\BulkOrderController;
 use App\Http\Controllers\OrderImportController;
 use App\Http\Controllers\Schedule\GanttController;
@@ -252,6 +253,14 @@ Route::middleware('auth')->group(function () {
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update']);
     Route::patch('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])
         ->name('users.toggle-active');
+
+    // ─── Custom Bill Generator (pipeline manager only) ────────
+    Route::get('/billing/custom', [CustomBillController::class, 'create'])
+        ->middleware('role:pipeline_manager')
+        ->name('billing.custom.create');
+    Route::post('/billing/custom/download', [CustomBillController::class, 'download'])
+        ->middleware('role:pipeline_manager')
+        ->name('billing.custom.download');
 
     // ─── Clients (pipeline manager only) ──────────────────────
     Route::get('/clients/autocomplete', [ClientController::class, 'autocomplete'])

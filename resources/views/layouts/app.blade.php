@@ -347,6 +347,12 @@
                             <i class="bi bi-person-lines-fill"></i> Clients
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ route('billing.custom.create') }}"
+                           class="nav-link {{ request()->routeIs('billing.custom.*') ? 'active' : '' }}">
+                            <i class="bi bi-receipt-cutoff"></i> Custom Bill
+                        </a>
+                    </li>
                 @endif
 
                 <li><span class="nav-section">Production</span></li>
