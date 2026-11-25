@@ -255,12 +255,13 @@ Route::middleware('auth')->group(function () {
         ->name('users.toggle-active');
 
     // ─── Custom Bill Generator (pipeline manager only) ────────
-    Route::get('/billing/custom', [CustomBillController::class, 'create'])
-        ->middleware('role:pipeline_manager')
-        ->name('billing.custom.create');
-    Route::post('/billing/custom/download', [CustomBillController::class, 'download'])
-        ->middleware('role:pipeline_manager')
-        ->name('billing.custom.download');
+    Route::middleware('role:pipeline_manager')->group(function () {
+        Route::get('/billing',                              [CustomBillController::class, 'index'])  ->name('billing.index');
+        Route::get('/billing/new',                         [CustomBillController::class, 'create']) ->name('billing.custom.create');
+        Route::post('/billing',                            [CustomBillController::class, 'store'])  ->name('billing.custom.store');
+        Route::get('/billing/{bill}/download',             [CustomBillController::class, 'download'])->name('billing.custom.download');
+        Route::delete('/billing/{bill}',                   [CustomBillController::class, 'destroy'])->name('billing.custom.destroy');
+    });
 
     // ─── Clients (pipeline manager only) ──────────────────────
     Route::get('/clients/autocomplete', [ClientController::class, 'autocomplete'])

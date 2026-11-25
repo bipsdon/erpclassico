@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Custom Bill Generator')
+@section('title', 'New Custom Bill')
 @section('page-title')
-    <i class="bi bi-receipt-cutoff me-2 text-success"></i>Custom Bill Generator
+    <i class="bi bi-receipt-cutoff me-2 text-success"></i>New Bill
 @endsection
 
 @push('styles')
@@ -14,7 +14,13 @@
 
 @section('content')
 
-<form method="POST" action="{{ route('billing.custom.download') }}" id="bill-form">
+<div class="d-flex align-items-center gap-2 mb-4">
+    <a href="{{ route('billing.index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>All Bills
+    </a>
+</div>
+
+<form method="POST" action="{{ route('billing.custom.store') }}" id="bill-form">
 @csrf
 
 <div class="row g-4">
@@ -49,12 +55,11 @@
                     @error('bill_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-12 col-md-3">
-                    <label class="form-label fw-semibold">Bill / Invoice No.</label>
-                    <input type="text" name="bill_number"
-                           class="form-control @error('bill_number') is-invalid @enderror"
-                           value="{{ old('bill_number') }}"
-                           placeholder="e.g. INV-001">
-                    @error('bill_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <label class="form-label fw-semibold">Invoice No.</label>
+                    <input type="text" class="form-control bg-light text-muted"
+                           value="{{ $nextNumber }}" readonly
+                           title="Auto-generated on save">
+                    <div class="form-text">Auto-generated on save.</div>
                 </div>
             </div>
         </div>
@@ -73,22 +78,19 @@
                 <thead class="table-light">
                     <tr>
                         <th style="min-width:200px">Product / Service</th>
-                        <th style="min-width:160px">Description</th>
-                        <th style="width:90px">Qty</th>
+                        <th style="min-width:150px">Description</th>
+                        <th style="width:85px">Qty</th>
                         <th style="width:130px">Unit Price (Rs.)</th>
                         <th style="width:130px" class="text-end">Total (Rs.)</th>
-                        <th style="width:48px"></th>
+                        <th style="width:44px"></th>
                     </tr>
                 </thead>
-                <tbody id="items-body">
-                    {{-- seeded with one blank row via JS --}}
-                </tbody>
+                <tbody id="items-body"></tbody>
             </table>
         </div>
-        {{-- Totals row --}}
         <div class="card-footer bg-white py-3">
             <div class="d-flex justify-content-end align-items-center gap-4">
-                <span class="text-muted">Grand Total</span>
+                <span class="text-muted fw-semibold">Grand Total</span>
                 <span id="grand-total">Rs. 0.00</span>
             </div>
         </div>
@@ -97,7 +99,8 @@
     {{-- Notes --}}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white py-3 fw-semibold">
-            <i class="bi bi-sticky me-2 text-warning"></i>Notes <small class="text-muted fw-normal">(optional)</small>
+            <i class="bi bi-sticky me-2 text-warning"></i>Notes
+            <small class="text-muted fw-normal">(optional)</small>
         </div>
         <div class="card-body">
             <textarea name="notes" rows="3" class="form-control"
@@ -107,7 +110,7 @@
 
 </div>
 
-{{-- ── RIGHT: Preview & download ───────────────────────── --}}
+{{-- ── RIGHT: Preview & save ───────────────────────────── --}}
 <div class="col-12 col-xl-4">
     <div class="card border-0 shadow-sm" style="position:sticky;top:72px">
         <div class="card-header bg-white py-3 fw-semibold">
@@ -115,11 +118,12 @@
         </div>
         <div class="card-body">
 
-            {{-- Live mini preview --}}
+            {{-- Live mini-preview --}}
             <div class="border rounded-2 p-3 mb-3 bg-light" style="font-size:.82rem">
-                <div class="fw-bold text-primary mb-1" style="font-size:.9rem">Classico Sports Studio Pvt. Ltd.</div>
-                <div class="text-muted" style="font-size:.75rem">Satungal Complex, Satungal, Kathmandu</div>
+                <div class="fw-bold text-primary mb-0" style="font-size:.88rem">Classico Sports Studio Pvt. Ltd.</div>
+                <div class="text-muted" style="font-size:.73rem">Satungal Complex, Satungal, Kathmandu</div>
                 <hr class="my-2">
+                <div><span class="text-muted">Invoice No.:</span> <span class="fw-semibold text-success">{{ $nextNumber }}</span></div>
                 <div><span class="text-muted">Bill To:</span> <span id="preview-bill-to" class="fw-semibold">—</span></div>
                 <div><span class="text-muted">Date:</span> <span id="preview-date">{{ now()->format('d M Y') }}</span></div>
                 <div><span class="text-muted">Items:</span> <span id="preview-items">0</span></div>
@@ -137,10 +141,10 @@
             @endif
 
             <button type="submit" class="btn btn-danger w-100 mb-2">
-                <i class="bi bi-file-earmark-pdf me-2"></i>Download PDF Bill
+                <i class="bi bi-file-earmark-pdf me-2"></i>Save &amp; Download PDF
             </button>
             <div class="text-muted small text-center">
-                <i class="bi bi-info-circle me-1"></i>PDF opens as a download — no data is saved.
+                <i class="bi bi-info-circle me-1"></i>Bill is saved and PDF downloads immediately.
             </div>
         </div>
     </div>
@@ -170,15 +174,15 @@
     }
 
     function addRow(title, description, qty, price) {
-        const i   = rowIndex++;
-        const tr  = document.createElement('tr');
-        tr.className = 'item-row';
+        const i  = rowIndex++;
+        const tr = document.createElement('tr');
+        tr.className  = 'item-row';
         tr.dataset.idx = i;
         tr.innerHTML = `
             <td>
                 <input type="text" name="items[${i}][title]"
                        class="form-control form-control-sm"
-                       value="${escAttr(title || '')}"
+                       value="${escAttr(title  || '')}"
                        placeholder="e.g. Jersey printing" required>
             </td>
             <td>
@@ -190,12 +194,13 @@
             <td>
                 <input type="number" name="items[${i}][qty]"
                        class="form-control form-control-sm qty-input"
-                       value="${qty || 1}" min="0" step="any" required>
+                       value="${qty !== undefined ? qty : 1}" min="0" step="any" required>
             </td>
             <td>
                 <input type="number" name="items[${i}][price]"
                        class="form-control form-control-sm price-input"
-                       value="${price || ''}" min="0" step="any" placeholder="0.00" required>
+                       value="${price !== undefined ? price : ''}"
+                       min="0" step="any" placeholder="0.00" required>
             </td>
             <td class="text-end row-total">—</td>
             <td>
@@ -205,71 +210,67 @@
             </td>`;
         tbody.appendChild(tr);
         recalcRow(tr);
-        return tr;
     }
 
     function recalcRow(tr) {
         const qty   = parseFloat(tr.querySelector('.qty-input').value)   || 0;
         const price = parseFloat(tr.querySelector('.price-input').value) || 0;
-        const total = qty * price;
-        tr.querySelector('.row-total').textContent = total > 0 ? fmt(total) : '—';
+        tr.querySelector('.row-total').textContent = qty * price > 0 ? fmt(qty * price) : '—';
     }
 
     function recalcAll() {
         let grand = 0;
-        tbody.querySelectorAll('.item-row').forEach(tr => {
-            const qty   = parseFloat(tr.querySelector('.qty-input').value)   || 0;
-            const price = parseFloat(tr.querySelector('.price-input').value) || 0;
-            grand += qty * price;
-            recalcRow(tr);
-        });
+        tbody.querySelectorAll('.item-row').forEach(tr => { recalcRow(tr); grand += rowTotal(tr); });
         const f = fmt(grand);
         totalEl.textContent   = f;
         prevTotal.textContent = f;
         prevItems.textContent = tbody.querySelectorAll('.item-row').length;
     }
 
+    function rowTotal(tr) {
+        return (parseFloat(tr.querySelector('.qty-input').value)   || 0) *
+               (parseFloat(tr.querySelector('.price-input').value) || 0);
+    }
+
     function escAttr(s) {
         return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // Add row button
-    addBtn.addEventListener('click', () => { addRow(); });
+    addBtn.addEventListener('click', () => addRow());
 
-    // Delegated events on tbody
     tbody.addEventListener('input', function (e) {
         const tr = e.target.closest('.item-row');
-        if (tr) recalcRow(tr);
-        recalcAll();
+        if (tr) recalcAll();
     });
+
     tbody.addEventListener('click', function (e) {
         const btn = e.target.closest('.remove-row');
         if (!btn) return;
-        const rows = tbody.querySelectorAll('.item-row');
-        if (rows.length <= 1) { alert('At least one item is required.'); return; }
+        if (tbody.querySelectorAll('.item-row').length <= 1) {
+            alert('At least one item is required.'); return;
+        }
         btn.closest('tr').remove();
         recalcAll();
     });
 
-    // Live preview updates
     billToIn.addEventListener('input', () => {
         prevBillTo.textContent = billToIn.value.trim() || '—';
     });
+
     dateIn.addEventListener('input', () => {
         const d = new Date(dateIn.value);
-        if (!isNaN(d)) {
+        if (!isNaN(d))
             prevDate.textContent = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-        }
     });
 
-    // Seed with one blank row on load
+    // Seed rows — restore old() on validation failure
     @if(old('items'))
-        @foreach(old('items') as $i => $item)
+        @foreach(old('items') as $item)
             addRow(
-                {{ json_encode($item['title'] ?? '') }},
+                {{ json_encode($item['title']       ?? '') }},
                 {{ json_encode($item['description'] ?? '') }},
-                {{ json_encode($item['qty'] ?? 1) }},
-                {{ json_encode($item['price'] ?? '') }}
+                {{ json_encode($item['qty']         ?? 1)  }},
+                {{ json_encode($item['price']       ?? '')  }}
             );
         @endforeach
     @else
@@ -277,8 +278,6 @@
     @endif
 
     recalcAll();
-
-    // Init preview
     prevBillTo.textContent = billToIn.value.trim() || '—';
 }());
 </script>

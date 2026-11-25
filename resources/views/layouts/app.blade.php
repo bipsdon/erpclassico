@@ -348,8 +348,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ route('billing.custom.create') }}"
-                           class="nav-link {{ request()->routeIs('billing.custom.*') ? 'active' : '' }}">
+                        <a href="{{ route('billing.index') }}"
+                           class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}">
                             <i class="bi bi-receipt-cutoff"></i> Custom Bill
                         </a>
                     </li>
