@@ -45,23 +45,63 @@ class ClientController extends Controller
 
     public function show(Client $client): View
     {
-        // Eager-load everything the view needs
         $orders = $client->orders()
             ->with(['bill', 'stageLogs'])
-            ->orderByDesc('order_date')
+            ->orderBy('order_date')
+            ->orderBy('id')
             ->get();
 
-        $payments = $client->payments()->with('recorder')->get();
+        $payments = $client->payments()
+            ->with('recorder')
+            ->orderBy('payment_date')
+            ->orderBy('id')
+            ->get();
 
-        $totalBilled   = $orders->sum(fn ($o) => optional($o->bill)->amount   ?? 0);
-        $totalReceived = $orders->sum(fn ($o) => optional($o->bill)->received ?? 0);
-        $totalBalance  = $totalBilled - $totalReceived;
+        $totalBilled  = $orders->sum(fn ($o) => optional($o->bill)->amount ?? 0);
+        $totalPaid    = $payments->sum('amount');
+        $netBalance   = $totalBilled - $totalPaid;   // negative = client is in credit
 
-        $totalPaid = $payments->sum('amount');
+        // Build a chronological event stream for the running-balance ledger.
+        // Each event is either a debit (order billed) or a credit (payment received).
+        $events = collect();
+
+        foreach ($orders as $order) {
+            $amount = optional($order->bill)->amount ?? 0;
+            $events->push([
+                'type'          => 'order',
+                'date'          => $order->order_date,
+                'sort_key'      => $order->order_date->format('Y-m-d') . '-A-' . $order->id,
+                'order'         => $order,
+                'debit'         => $amount,
+                'credit'        => 0,
+            ]);
+        }
+
+        foreach ($payments as $payment) {
+            $events->push([
+                'type'          => 'payment',
+                'date'          => $payment->payment_date,
+                'sort_key'      => $payment->payment_date->format('Y-m-d') . '-B-' . $payment->id,
+                'payment'       => $payment,
+                'debit'         => 0,
+                'credit'        => $payment->amount,
+            ]);
+        }
+
+        // Sort: by date, orders before payments on the same day (A before B in sort_key)
+        $events = $events->sortBy('sort_key')->values();
+
+        // Compute running balance for each event
+        $running = 0;
+        $events = $events->map(function ($event) use (&$running) {
+            $running += $event['debit'] - $event['credit'];
+            $event['running_balance'] = $running;
+            return $event;
+        });
 
         return view('clients.show', compact(
-            'client', 'orders', 'payments',
-            'totalBilled', 'totalReceived', 'totalBalance', 'totalPaid'
+            'client', 'orders', 'payments', 'events',
+            'totalBilled', 'totalPaid', 'netBalance'
         ));
     }
 
@@ -122,15 +162,44 @@ class ClientController extends Controller
 
     public function exportPdf(Client $client): Response
     {
-        $client->load(['orders.bill', 'orders.stageLogs']);
+        $orders   = $client->orders()->with(['bill', 'stageLogs'])->orderBy('order_date')->orderBy('id')->get();
+        $payments = $client->payments()->orderBy('payment_date')->orderBy('id')->get();
 
-        $orders        = $client->orders()->with(['bill', 'stageLogs'])->orderBy('order_date')->get();
-        $totalBilled   = $orders->sum(fn ($o) => optional($o->bill)->amount   ?? 0);
-        $totalReceived = $orders->sum(fn ($o) => optional($o->bill)->received ?? 0);
-        $totalBalance  = $totalBilled - $totalReceived;
+        $totalBilled = $orders->sum(fn ($o) => optional($o->bill)->amount ?? 0);
+        $totalPaid   = $payments->sum('amount');
+        $netBalance  = $totalBilled - $totalPaid;
 
-        $pdf = Pdf::loadView('clients.ledger-pdf', compact('client', 'orders', 'totalBilled', 'totalReceived', 'totalBalance'))
-            ->setPaper('a4', 'landscape');
+        // Build the same event stream as show()
+        $events = collect();
+        foreach ($orders as $order) {
+            $events->push([
+                'type'     => 'order',
+                'sort_key' => $order->order_date->format('Y-m-d') . '-A-' . $order->id,
+                'order'    => $order,
+                'debit'    => optional($order->bill)->amount ?? 0,
+                'credit'   => 0,
+            ]);
+        }
+        foreach ($payments as $payment) {
+            $events->push([
+                'type'     => 'payment',
+                'sort_key' => $payment->payment_date->format('Y-m-d') . '-B-' . $payment->id,
+                'payment'  => $payment,
+                'debit'    => 0,
+                'credit'   => $payment->amount,
+            ]);
+        }
+        $events = $events->sortBy('sort_key')->values();
+        $running = 0;
+        $events = $events->map(function ($event) use (&$running) {
+            $running += $event['debit'] - $event['credit'];
+            $event['running_balance'] = $running;
+            return $event;
+        });
+
+        $pdf = Pdf::loadView('clients.ledger-pdf', compact(
+            'client', 'events', 'totalBilled', 'totalPaid', 'netBalance'
+        ))->setPaper('a4', 'landscape');
 
         $filename = 'ledger-' . str($client->name)->slug() . '-' . now()->format('Ymd') . '.pdf';
 
